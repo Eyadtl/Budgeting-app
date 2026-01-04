@@ -63,18 +63,52 @@ export const useBudgetStore = create((set, get) => ({
     fetchProfile: async (userId) => {
         set({ isLoading: true, error: null })
         try {
-            const { data, error } = await supabase
+            // First try to get existing profile
+            let { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('user_id', userId)
-                .single()
+                .maybeSingle()
 
-            if (error && error.code !== 'PGRST116') throw error
+            // If no profile exists (PGRST116) or data is null, create one
+            if (!data || (error && error.code === 'PGRST116')) {
+                const { data: newProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        user_id: userId,
+                        currency_preference: 'USD',
+                        monthly_income_goal: 0
+                    })
+                    .select()
+                    .single()
+
+                if (createError) {
+                    // If insert fails due to duplicate, try to fetch again
+                    if (createError.code === '23505') {
+                        const { data: existingProfile } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .single()
+                        data = existingProfile
+                    } else {
+                        throw createError
+                    }
+                } else {
+                    data = newProfile
+                }
+            } else if (error) {
+                throw error
+            }
+
             set({ profile: data, isLoading: false })
         } catch (error) {
-            set({ error: error.message, isLoading: false })
+            console.error('Profile fetch error:', error)
+            // Don't block the app, just set profile as null
+            set({ profile: null, isLoading: false })
         }
     },
+
 
     updateProfile: async (userId, updates) => {
         try {
