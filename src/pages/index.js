@@ -1,0 +1,7 @@
+export { Dashboard } from './Dashboard'
+export { Login } from './Auth'
+export { Income } from './Income'
+export { Categories } from './Categories'
+export { Expenses } from './Expenses'
+export { Profile } from './Profile'
+export { Debts } from './Debts'
