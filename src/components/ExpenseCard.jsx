@@ -1,4 +1,4 @@
-import { Trash2, Repeat } from 'lucide-react'
+import { Trash2, Repeat, EyeOff } from 'lucide-react'
 import { formatCurrency, formatDate } from '../utils'
 
 /**
@@ -9,7 +9,7 @@ export function ExpenseCard({
     currencyPreference = 'USD',
     onDelete
 }) {
-    const { name, amount, date, is_recurring, categories } = expense
+    const { name, amount, date, is_recurring, exclude_from_limit, categories } = expense
     const categoryName = categories?.name || 'Uncategorized'
     const categoryColor = categories?.color_code || '#94a3b8'
 
@@ -28,7 +28,10 @@ export function ExpenseCard({
                         {name}
                     </h4>
                     {is_recurring && (
-                        <Repeat className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                        <Repeat className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" title="Recurring Expense" />
+                    )}
+                    {exclude_from_limit && (
+                        <EyeOff className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" title="Excluded from Weekly Limit" />
                     )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">

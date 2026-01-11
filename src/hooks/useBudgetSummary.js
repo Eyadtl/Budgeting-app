@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useIncome } from './useIncome'
 import { useCategories } from './useCategories'
-import { useDebts } from './useDebts'
+import { useExpenses } from './useExpenses'
 
 /**
  * Custom hook for budget summary calculations
@@ -10,14 +10,20 @@ import { useDebts } from './useDebts'
 export function useBudgetSummary() {
     const { totalMonthlyIncome } = useIncome()
     const { totalBudgeted } = useCategories()
-    const { totalRemaining: totalDebtPayments } = useDebts()
+    const { currentMonthExpenses } = useExpenses()
 
-    // Total assigned = category budgets (debt payments can optionally be included)
+    // Calculate actual debt payments made this month
+    const monthlyDebtPayments = useMemo(() => {
+        return currentMonthExpenses
+            .filter(e => e.name && e.name.startsWith('Debt Payment:') && !e.category_id)
+            .reduce((sum, e) => sum + Number(e.amount), 0)
+    }, [currentMonthExpenses])
+
+    // Total assigned = category budgets + debt payments
     const totalAssigned = useMemo(() => {
-        // For zero-based budgeting, we only count category budgets as "assigned"
-        // Debt payments are tracked separately but can be included if user chooses
-        return totalBudgeted
-    }, [totalBudgeted])
+        // For zero-based budgeting, we count category budgets AND actual debt payments as "assigned"
+        return totalBudgeted + monthlyDebtPayments
+    }, [totalBudgeted, monthlyDebtPayments])
 
     // Calculate remaining to assign
     const remaining = useMemo(() => {

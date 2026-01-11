@@ -24,6 +24,7 @@ CREATE TABLE profiles (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     currency_preference TEXT DEFAULT 'USD',
     monthly_income_goal NUMERIC(12, 2) DEFAULT 0,
+    weekly_limit_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id)
@@ -64,6 +65,7 @@ CREATE TABLE expenses (
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     date DATE NOT NULL,
     is_recurring BOOLEAN DEFAULT FALSE,
+    exclude_from_limit BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

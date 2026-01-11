@@ -14,7 +14,8 @@ export function useDebts() {
         fetchDebts,
         addDebt,
         updateDebt,
-        deleteDebt
+        deleteDebt,
+        addExpense
     } = useBudgetStore()
 
     useEffect(() => {
@@ -51,9 +52,34 @@ export function useDebts() {
     const recordPayment = async (debtId, amount) => {
         const debt = debts.find(d => d.id === debtId)
         if (!debt) return { success: false, error: 'Debt not found' }
+        if (!user?.id) return { success: false, error: 'Not authenticated' }
 
+        // Update the debt's amount_paid
         const newAmountPaid = Number(debt.amount_paid) + Number(amount)
-        return updateDebt(debtId, { amount_paid: newAmountPaid })
+        const debtResult = await updateDebt(debtId, { amount_paid: newAmountPaid })
+
+        if (!debtResult.success) {
+            return debtResult
+        }
+
+        // Also record this as an expense so it shows in expense tracking
+        // and affects the weekly spending limit
+        const today = new Date().toISOString().split('T')[0]
+        const expenseResult = await addExpense({
+            user_id: user.id,
+            name: `Debt Payment: ${debt.name}`,
+            amount: Number(amount),
+            category_id: null,
+            date: today,
+            is_recurring: false
+        })
+
+        if (!expenseResult.success) {
+            console.warn('Debt updated but expense creation failed:', expenseResult.error)
+            // Still return success since the debt was updated
+        }
+
+        return { success: true }
     }
 
     const remove = async (id) => {

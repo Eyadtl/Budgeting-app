@@ -230,6 +230,12 @@ export const useBudgetStore = create((set, get) => ({
                 categories: state.categories.map((c) =>
                     c.id === id ? data : c
                 ),
+                // Update related expenses in local state to avoid stale data
+                expenses: state.expenses.map((e) => 
+                    e.category_id === id 
+                        ? { ...e, categories: { name: data.name, color_code: data.color_code } }
+                        : e
+                )
             }))
             return { success: true, data }
         } catch (error) {
@@ -248,6 +254,12 @@ export const useBudgetStore = create((set, get) => ({
             if (error) throw error
             set((state) => ({
                 categories: state.categories.filter((c) => c.id !== id),
+                // Update related expenses to reflect category deletion (SET NULL behavior)
+                expenses: state.expenses.map((e) => 
+                    e.category_id === id 
+                        ? { ...e, category_id: null, categories: null }
+                        : e
+                )
             }))
             return { success: true }
         } catch (error) {
@@ -274,19 +286,55 @@ export const useBudgetStore = create((set, get) => ({
     },
 
     addExpense: async (expense) => {
-        try {
-            const { data, error } = await supabase
+        const insertExpense = async (payload) => {
+            return await supabase
                 .from('expenses')
-                .insert(expense)
+                .insert(payload)
                 .select('*, categories(name, color_code)')
                 .single()
+        }
+
+        try {
+            // Prepare payload: remove exclude_from_limit if false
+            const payload = { ...expense }
+            if (!payload.exclude_from_limit) {
+                delete payload.exclude_from_limit
+            }
+
+            const { data, error } = await insertExpense(payload)
 
             if (error) throw error
+            
             set((state) => ({
                 expenses: [data, ...state.expenses],
             }))
             return { success: true, data }
         } catch (error) {
+            // Fallback: If error is about the missing column, retry without it
+            if (error.message.includes('exclude_from_limit') && error.message.includes('column')) {
+                try {
+                    const fallbackPayload = { ...expense }
+                    delete fallbackPayload.exclude_from_limit
+                    
+                    const { data, error: retryError } = await insertExpense(fallbackPayload)
+                    
+                    if (retryError) throw retryError
+
+                    set((state) => ({
+                        expenses: [data, ...state.expenses],
+                    }))
+                    
+                    return { 
+                        success: true, 
+                        data, 
+                        warning: "Expense added, but 'Exclude from limit' setting was ignored because the database has not been updated." 
+                    }
+                } catch (retryError) {
+                    set({ error: retryError.message })
+                    return { success: false, error: retryError.message }
+                }
+            }
+
             set({ error: error.message })
             return { success: false, error: error.message }
         }

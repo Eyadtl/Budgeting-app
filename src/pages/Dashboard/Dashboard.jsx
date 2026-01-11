@@ -3,7 +3,7 @@ import { Plus, Download, Receipt, DollarSign, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { HeaderStats, BottomNav, ExpenseCard, Modal, Button } from '../../components'
 import { IncomeForm, ExpenseForm } from '../../components/forms'
-import { useAuth, useProfile, useIncome, useCategories, useExpenses, useBudgetSummary } from '../../hooks'
+import { useAuth, useProfile, useIncome, useCategories, useExpenses, useBudgetSummary, useWeeklyLimit } from '../../hooks'
 import { useBudgetStore } from '../../stores'
 import { exportToCSV, prepareTransactionsForExport, isCurrentMonth, getMonthName, getCurrentMonth } from '../../utils'
 import { checkMonthRollover, acknowledgeRollover } from '../../utils/rollover'
@@ -17,6 +17,7 @@ export function Dashboard() {
     const { categories } = useCategories()
     const { currentMonthExpenses, addExpense, deleteExpense, isLoading: expensesLoading } = useExpenses()
     const { fetchAllData } = useBudgetStore()
+    const { isExceeded, isEnabled: weeklyLimitEnabled } = useWeeklyLimit()
 
     const [showIncomeModal, setShowIncomeModal] = useState(false)
     const [showExpenseModal, setShowExpenseModal] = useState(false)
@@ -50,6 +51,11 @@ export function Dashboard() {
         const result = await addExpense(data)
         if (result.success) {
             setShowExpenseModal(false)
+            if (result.warning) {
+                alert(result.warning)
+            }
+        } else {
+            alert(`Failed to add expense: ${result.error}`)
         }
     }
 
@@ -144,6 +150,15 @@ export function Dashboard() {
                     <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                         <p className="text-sm text-red-800 dark:text-red-200">
                             ⚠️ You've assigned more than your income. Review your categories to fix this.
+                        </p>
+                    </div>
+                )}
+
+                {/* Weekly Limit Exceeded Warning */}
+                {weeklyLimitEnabled && isExceeded && totalIncome > 0 && (
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                            🚨 You've exceeded your weekly spending limit. Consider pausing non-essential purchases.
                         </p>
                     </div>
                 )}

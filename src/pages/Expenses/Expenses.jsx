@@ -26,6 +26,11 @@ export function Expenses() {
         const result = await addExpense(data)
         if (result.success) {
             setShowModal(false)
+            if (result.warning) {
+                alert(result.warning)
+            }
+        } else {
+            alert(`Failed to add expense: ${result.error}`)
         }
     }
 
