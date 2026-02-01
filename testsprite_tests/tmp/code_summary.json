@@ -1,0 +1,455 @@
+{
+  "tech_stack": [
+    "JavaScript",
+    "React",
+    "Vite",
+    "Tailwind CSS",
+    "Supabase",
+    "React Router",
+    "Zustand"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "User authentication with login and registration using Supabase Auth",
+      "files": [
+        "src/pages/Auth/Login.jsx",
+        "src/stores/authStore.js",
+        "src/hooks/useAuth.js",
+        "src/services/supabase/auth.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Authentication API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/login": {
+            "post": {
+              "summary": "User login",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": { "type": "string" },
+                        "password": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/register": {
+            "post": {
+              "summary": "User registration",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": { "type": "string" },
+                        "password": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main dashboard showing budget summary, quick actions, and recent expenses",
+      "files": [
+        "src/pages/Dashboard/Dashboard.jsx",
+        "src/components/HeaderStats.jsx",
+        "src/hooks/useBudgetSummary.js",
+        "src/hooks/useWeeklyLimit.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Dashboard API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/": {
+            "get": {
+              "summary": "Get dashboard data",
+              "responses": {
+                "200": {
+                  "description": "Dashboard data including budget summary and recent expenses"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Income Management",
+      "description": "Manage income sources with recurring and one-time options",
+      "files": [
+        "src/pages/Income/Income.jsx",
+        "src/components/forms/IncomeForm.jsx",
+        "src/hooks/useIncome.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Income Management API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/income": {
+            "get": {
+              "summary": "Get all income sources",
+              "responses": {
+                "200": {
+                  "description": "List of income sources"
+                }
+              }
+            },
+            "post": {
+              "summary": "Add new income source",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "amount": { "type": "number" },
+                        "date": { "type": "string", "format": "date" },
+                        "frequency": { "type": "string", "enum": ["recurring", "one-time"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/income/{id}": {
+            "delete": {
+              "summary": "Delete income source",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Expense Management",
+      "description": "Manage expenses with category assignment and filtering",
+      "files": [
+        "src/pages/Expenses/Expenses.jsx",
+        "src/components/forms/ExpenseForm.jsx",
+        "src/components/ExpenseCard.jsx",
+        "src/hooks/useExpenses.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Expense Management API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/expenses": {
+            "get": {
+              "summary": "Get all expenses",
+              "responses": {
+                "200": {
+                  "description": "List of expenses grouped by category"
+                }
+              }
+            },
+            "post": {
+              "summary": "Add new expense",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "amount": { "type": "number" },
+                        "date": { "type": "string", "format": "date" },
+                        "category_id": { "type": "string" },
+                        "frequency": { "type": "string", "enum": ["recurring", "one-time"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/expenses/{id}": {
+            "delete": {
+              "summary": "Delete expense",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Category Management",
+      "description": "Manage budget categories with budget allocation and spending tracking",
+      "files": [
+        "src/pages/Categories/Categories.jsx",
+        "src/components/forms/CategoryForm.jsx",
+        "src/components/CategoryCard.jsx",
+        "src/hooks/useCategories.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Category Management API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/categories": {
+            "get": {
+              "summary": "Get all categories",
+              "responses": {
+                "200": {
+                  "description": "List of categories with spending data"
+                }
+              }
+            },
+            "post": {
+              "summary": "Add new category",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "budget": { "type": "number" },
+                        "color": { "type": "string" },
+                        "exclude_from_limit": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/categories/{id}": {
+            "put": {
+              "summary": "Update category",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ],
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "budget": { "type": "number" },
+                        "color": { "type": "string" },
+                        "exclude_from_limit": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "delete": {
+              "summary": "Delete category",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Debt Management",
+      "description": "Track debts with payment recording and progress monitoring",
+      "files": [
+        "src/pages/Debts/Debts.jsx",
+        "src/components/forms/DebtForm.jsx",
+        "src/components/forms/PaymentForm.jsx",
+        "src/components/DebtCard.jsx",
+        "src/hooks/useDebts.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Debt Management API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/debts": {
+            "get": {
+              "summary": "Get all debts",
+              "responses": {
+                "200": {
+                  "description": "List of debts with payment status"
+                }
+              }
+            },
+            "post": {
+              "summary": "Add new debt",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "total_balance": { "type": "number" },
+                        "interest_rate": { "type": "number" },
+                        "minimum_payment": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/debts/{id}": {
+            "put": {
+              "summary": "Update debt",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ]
+            },
+            "delete": {
+              "summary": "Delete debt",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ]
+            }
+          },
+          "/debts/{id}/payments": {
+            "post": {
+              "summary": "Record payment for debt",
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "schema": { "type": "string" }
+                }
+              ],
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "amount": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Profile & Settings",
+      "description": "User profile management with settings, currency preferences, and data export",
+      "files": [
+        "src/pages/Profile/Profile.jsx",
+        "src/hooks/useProfile.js"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Profile API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/profile": {
+            "get": {
+              "summary": "Get user profile",
+              "responses": {
+                "200": {
+                  "description": "User profile data"
+                }
+              }
+            },
+            "put": {
+              "summary": "Update user profile",
+              "requestBody": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "currency_preference": { "type": "string" },
+                        "monthly_income_goal": { "type": "number" },
+                        "weekly_limit_enabled": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/profile/export": {
+            "get": {
+              "summary": "Export budget data as CSV",
+              "responses": {
+                "200": {
+                  "description": "CSV file download"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+

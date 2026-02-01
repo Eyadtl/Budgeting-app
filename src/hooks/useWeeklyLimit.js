@@ -7,7 +7,8 @@ import {
     calculateProRatedWeeklyLimit,
     getWeeklySpendingStatus,
     getDaysRemainingInWeek,
-    getStartOfWeek
+    getStartOfWeek,
+    parseDate
 } from '../utils'
 
 /**
@@ -26,7 +27,7 @@ export function useWeeklyLimit() {
     const currentWeekExpenses = useMemo(() => {
         const weekStart = getStartOfWeek()
         return currentMonthExpenses.filter(expense => {
-            const expenseDate = new Date(expense.date)
+            const expenseDate = parseDate(expense.date)
             const isDebtPayment = expense.name && expense.name.startsWith('Debt Payment:')
             // Check if expense is explicitly excluded from limit
             const isExcluded = expense.exclude_from_limit === true

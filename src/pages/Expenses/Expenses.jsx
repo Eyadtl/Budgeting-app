@@ -3,15 +3,13 @@ import { Plus, Receipt, Filter } from 'lucide-react'
 import { BottomNav, ExpenseCard, Modal, Card, CardContent, Select } from '../../components'
 import { ExpenseForm } from '../../components/forms'
 import { useProfile, useCategories, useExpenses } from '../../hooks'
-import { formatCurrency, getMonthName, getCurrentMonth } from '../../utils'
+import { formatCurrency, getMonthName, getCurrentMonth, filterByMonth, parseDate } from '../../utils'
 
 export function Expenses() {
     const { currencyPreference } = useProfile()
     const { categories } = useCategories()
     const {
-        currentMonthExpenses,
-        groupedByCategory,
-        totalMonthlyExpenses,
+        expenses,
         addExpense,
         deleteExpense,
         isLoading
@@ -20,7 +18,58 @@ export function Expenses() {
     const [showModal, setShowModal] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState('')
 
-    const { month, year } = getCurrentMonth()
+    const { month: currentMonth, year: currentYear } = getCurrentMonth()
+    const [selectedMonth, setSelectedMonth] = useState(String(currentMonth))
+    const [selectedYear, setSelectedYear] = useState(String(currentYear))
+
+    const selectedMonthNumber = Number(selectedMonth)
+    const selectedYearNumber = Number(selectedYear)
+
+    const monthOptions = Array.from({ length: 12 }, (_, m) => ({
+        value: String(m),
+        label: getMonthName(m)
+    }))
+
+    const yearOptions = (() => {
+        const years = new Set()
+        years.add(currentYear)
+
+        for (const expense of expenses) {
+            if (!expense?.date) continue
+            years.add(parseDate(expense.date).getFullYear())
+        }
+
+        return Array.from(years)
+            .sort((a, b) => b - a)
+            .map((y) => ({ value: String(y), label: String(y) }))
+    })()
+
+    const periodExpenses = filterByMonth(expenses, selectedMonthNumber, selectedYearNumber)
+
+    const totalPeriodExpenses = periodExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
+
+    // Group expenses by category (for the selected month/year)
+    const groupedByCategory = (() => {
+        const groups = {}
+
+        periodExpenses.forEach(expense => {
+            const categoryId = expense.category_id || 'uncategorized'
+            if (!groups[categoryId]) {
+                const category = categories.find(c => c.id === categoryId)
+                groups[categoryId] = {
+                    categoryId,
+                    categoryName: category?.name || expense?.categories?.name || 'Uncategorized',
+                    categoryColor: category?.color_code || expense?.categories?.color_code || '#94a3b8',
+                    expenses: [],
+                    total: 0
+                }
+            }
+            groups[categoryId].expenses.push(expense)
+            groups[categoryId].total += Number(expense.amount)
+        })
+
+        return Object.values(groups).sort((a, b) => b.total - a.total)
+    })()
 
     const handleAdd = async (data) => {
         const result = await addExpense(data)
@@ -58,7 +107,7 @@ export function Expenses() {
                             Expenses
                         </h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {getMonthName(month)} {year}
+                            {getMonthName(selectedMonthNumber)} {selectedYearNumber}
                         </p>
                     </div>
                     <button
@@ -69,15 +118,35 @@ export function Expenses() {
                     </button>
                 </div>
 
+                {/* Month/Year Selector */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <Select
+                        label="Month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        options={monthOptions}
+                        placeholder={null}
+                    />
+                    <Select
+                        label="Year"
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                        options={yearOptions}
+                        placeholder={null}
+                    />
+                </div>
+
                 {/* Total Card */}
                 <Card className="mb-6 bg-gradient-to-br from-red-500 to-rose-600 border-0">
                     <CardContent className="text-white">
-                        <p className="text-sm opacity-80">Total Expenses This Month</p>
+                        <p className="text-sm opacity-80">
+                            Total Expenses ({getMonthName(selectedMonthNumber)} {selectedYearNumber})
+                        </p>
                         <p className="text-3xl font-bold mt-1">
-                            {formatCurrency(totalMonthlyExpenses, currencyPreference)}
+                            {formatCurrency(totalPeriodExpenses, currencyPreference)}
                         </p>
                         <p className="text-sm opacity-80 mt-2">
-                            {currentMonthExpenses.length} transaction{currentMonthExpenses.length !== 1 ? 's' : ''}
+                            {periodExpenses.length} transaction{periodExpenses.length !== 1 ? 's' : ''}
                         </p>
                     </CardContent>
                 </Card>

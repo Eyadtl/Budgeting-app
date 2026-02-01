@@ -1,5 +1,6 @@
 export { IncomeForm } from './IncomeForm'
 export { ExpenseForm } from './ExpenseForm'
 export { CategoryForm } from './CategoryForm'
+export { CategoryRemainingForm } from './CategoryRemainingForm'
 export { DebtForm } from './DebtForm'
 export { PaymentForm } from './PaymentForm'

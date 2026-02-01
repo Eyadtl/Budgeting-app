@@ -18,12 +18,33 @@ export function formatCurrency(value, currency = 'USD') {
 }
 
 /**
+ * Parse a date input into a Date object.
+ * Supabase DATE columns return "YYYY-MM-DD" which `new Date()` treats as UTC,
+ * causing off-by-one day issues in many timezones. We parse those as local dates.
+ * @param {string|Date} date
+ * @returns {Date}
+ */
+export function parseDate(date) {
+    if (date instanceof Date) return date
+
+    if (typeof date === 'string') {
+        // Date-only (no time) -> parse as local date
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            const [y, m, d] = date.split('-').map(Number)
+            return new Date(y, m - 1, d)
+        }
+    }
+
+    return new Date(date)
+}
+
+/**
  * Format date to locale string
  * @param {string|Date} date 
  * @returns {string}
  */
 export function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-US', {
+    return parseDate(date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -52,7 +73,7 @@ export function getCurrentMonth() {
  * @returns {boolean}
  */
 export function isCurrentMonth(date) {
-    const d = new Date(date)
+    const d = parseDate(date)
     const { month, year } = getCurrentMonth()
     return d.getMonth() === month && d.getFullYear() === year
 }
@@ -66,7 +87,7 @@ export function isCurrentMonth(date) {
  */
 export function filterByMonth(items, month, year) {
     return items.filter(item => {
-        const d = new Date(item.date)
+        const d = parseDate(item.date)
         return d.getMonth() === month && d.getFullYear() === year
     })
 }

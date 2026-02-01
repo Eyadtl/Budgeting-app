@@ -1,0 +1,586 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration Success",
+    "description": "Verify that a new user can register with a valid email and password and receive confirmation.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the registration page"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid email address and password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that registration is successful and user is redirected or informed"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Registration with Invalid Email",
+    "description": "Verify that registration fails with an invalid email format and appropriate error message is shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the registration page"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid email format and a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message indicating invalid email format is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login Success",
+    "description": "Check login is successful with correct credentials and user lands on the dashboard.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page"
+      },
+      {
+        "type": "action",
+        "description": "Input registered email and correct password"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that user is redirected to the dashboard and token/session is created"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Login with Incorrect Password",
+    "description": "Verify login fails when an incorrect password is used and an error message is displayed.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page"
+      },
+      {
+        "type": "action",
+        "description": "Input registered email and incorrect password"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that login fails and error feedback is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Dashboard Loads with Budget Summary and Recent Expenses",
+    "description": "Validate that the dashboard fetches and displays accurate budget summary, recent expenses, and quick actions as per data.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and land on the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify budget summary data is displayed correctly"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify recent expenses are listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify quick actions (e.g. add income, add expense) are present"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Add One-Time Income Source",
+    "description": "Verify that a user can add a one-time income source by entering all required details and it appears in the income list.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Income Management page"
+      },
+      {
+        "type": "action",
+        "description": "Fill the income form with a one-time source: name, amount, date"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm the new income source is listed and data is correctly saved"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Add Recurring Income Source",
+    "description": "Verify the addition of a recurring income source and that it is correctly stored with the frequency property.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Income Management page"
+      },
+      {
+        "type": "action",
+        "description": "Add new income source with recurring frequency"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure the source is saved with recurring flag and visible in the list"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Delete Income Source",
+    "description": "Verify the user can delete an existing income source and it no longer appears in the list.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Income Management page"
+      },
+      {
+        "type": "action",
+        "description": "Select an existing income source"
+      },
+      {
+        "type": "action",
+        "description": "Delete the selected income source"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm the income source is removed from view and backend"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Add Expense with Category Assignment",
+    "description": "Verify that a user can add an expense with a valid category and it appears correctly grouped under that category.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Expense Management page"
+      },
+      {
+        "type": "action",
+        "description": "Fill expense form with name, amount, date, category, and frequency"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that expense is listed in chosen category grouping"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Filter Expenses by Category",
+    "description": "Verify that filtering expenses by a selected category correctly filters the expense list.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Expense Management page"
+      },
+      {
+        "type": "action",
+        "description": "Apply filter selecting a specific category"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that only expenses from the selected category are displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Delete Expense",
+    "description": "Verify that a user can delete an expense and that the list updates accordingly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Expense Management page"
+      },
+      {
+        "type": "action",
+        "description": "Select an expense and delete it"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure expense is removed from the list and backend"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Create New Budget Category",
+    "description": "Verify that a user can create a new budget category with name, budget amount, color, and exclusion flag.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Category Management page"
+      },
+      {
+        "type": "action",
+        "description": "Fill category form with name, budget, color, and exclude_from_limit flag"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new category appears with correct details"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Update Existing Category Budget and Color",
+    "description": "Validate that updating a category's budget, color, or exclusion flag persists changes correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Category Management page"
+      },
+      {
+        "type": "action",
+        "description": "Select an existing category for editing"
+      },
+      {
+        "type": "action",
+        "description": "Modify budget, color, or exclude_from_limit setting"
+      },
+      {
+        "type": "action",
+        "description": "Save the updated category"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm changes are reflected in the category list"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Delete Budget Category",
+    "description": "Verify that a category can be deleted safely and associated expenses handle the deletion gracefully.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Category Management page"
+      },
+      {
+        "type": "action",
+        "description": "Delete a selected category"
+      },
+      {
+        "type": "assertion",
+        "description": "Check category is removed and expenses previously in this category are reassigned or handled properly"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Add New Debt",
+    "description": "Verify that the user can add a new debt with total balance, interest rate, and minimum payment, and it appears in the debt list.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Debt Management page"
+      },
+      {
+        "type": "action",
+        "description": "Complete debt form with name, total balance, interest rate, and minimum payment"
+      },
+      {
+        "type": "action",
+        "description": "Submit the new debt"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm debt is listed with correct details"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Record Payment Toward Debt",
+    "description": "Validate recording a payment reduces debt balance and updates payment progress correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select an existing debt from the debt list"
+      },
+      {
+        "type": "action",
+        "description": "Record a payment amount toward the debt"
+      },
+      {
+        "type": "action",
+        "description": "Submit the payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify debt total balance is reduced and progress updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Delete Debt Entry",
+    "description": "Verify that a debt entry can be deleted and removed from the list.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Debt Management page"
+      },
+      {
+        "type": "action",
+        "description": "Select and delete an existing debt"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm debt is removed from the list and backend"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Update User Profile Settings",
+    "description": "Verify that user can update settings including currency preference, monthly income goals, and weekly limit enabling.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Profile & Settings page"
+      },
+      {
+        "type": "action",
+        "description": "Change currency preference"
+      },
+      {
+        "type": "action",
+        "description": "Modify monthly income goal and toggle weekly limit"
+      },
+      {
+        "type": "action",
+        "description": "Save updates"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm profile data is updated and persists after reload"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Export Budget Data as CSV",
+    "description": "Validate that the user can export their budget data and receive a properly formatted CSV file.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Profile & Settings page"
+      },
+      {
+        "type": "action",
+        "description": "Initiate export to CSV"
+      },
+      {
+        "type": "assertion",
+        "description": "Check the response is a CSV file containing budget data with correct formatting"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Error Handling for Invalid Income Input",
+    "description": "Ensure the application presents an error when adding income with missing or invalid fields such as negative amounts or missing name.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Income Management page"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to add income with invalid data (e.g. negative amount, empty name)"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Validate error messages are shown and income is not added"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Error Handling for Invalid Expense Input",
+    "description": "Verify that the system prevents adding expenses with invalid data such as future dates or missing category.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Expense Management page"
+      },
+      {
+        "type": "action",
+        "description": "Enter expense details with invalid or missing fields"
+      },
+      {
+        "type": "action",
+        "description": "Try to submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that appropriate validation error messages are displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "State Persistence and Routing Check",
+    "description": "Validate that application state (such as selected category filters and login sessions) is maintained via Zustand and routing works correctly through React Router.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and navigate through several views changing filters or settings"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page and verify state persists (e.g. filters remain applied)"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm user remains logged in and routing is consistent"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "Verify Category Exclusion from Budget Limits",
+    "description": "Test that categories marked as exclude_from_limit do not affect the total budget limit calculations on dashboard and summaries.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create or edit a category and set exclude_from_limit to true"
+      },
+      {
+        "type": "action",
+        "description": "Add expenses to this category"
+      },
+      {
+        "type": "action",
+        "description": "Check dashboard and budget summaries"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify expenses in excluded categories do not count toward spending limits"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Dashboard Responsive Layout Validation",
+    "description": "Ensure that the Dashboard page layout and components render correctly on various screen sizes following Tailwind CSS mobile-first guidelines.",
+    "category": "ui",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open Dashboard on mobile viewport"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that all components are visible, readable, and usable"
+      },
+      {
+        "type": "action",
+        "description": "Resize viewport to desktop resolution"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify layout adjusts appropriately and remains functional"
+      }
+    ]
+  }
+]

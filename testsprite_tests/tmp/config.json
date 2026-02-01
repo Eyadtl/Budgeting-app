@@ -1,0 +1,17 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "Budgeting-app",
+    "projectPath": "D:\\Budgeting-app",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-IofwJZuSL9qg53WwCHlBDCwfYbT8sh1mmof8sSIlO-0KGoWTsBcpttHDJ7qzsvXV-g2sdV2PkAPZc_sgPhqw9dc5OHosF11Kw8ACQ22HsK_2XocObjz9_TgqEwb8fI-IS2E"
+    }
+  },
+  "proxy": "http://80b869a0-5e08-4c5f-aae6-9f2128389c9b:QtUhpQbBr6MDm3rzeZlE35rhfxDUnCMv@tun.testsprite.com:8080"
+}

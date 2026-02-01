@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Tags } from 'lucide-react'
 import { BottomNav, CategoryCard, Modal, Card, CardContent } from '../../components'
-import { CategoryForm } from '../../components/forms'
+import { CategoryForm, CategoryRemainingForm } from '../../components/forms'
 import { useProfile, useCategories } from '../../hooks'
 import { formatCurrency, getMonthName, getCurrentMonth } from '../../utils'
 
@@ -18,6 +18,8 @@ export function Categories() {
 
     const [showModal, setShowModal] = useState(false)
     const [editingCategory, setEditingCategory] = useState(null)
+    const [showRemainingModal, setShowRemainingModal] = useState(false)
+    const [remainingCategory, setRemainingCategory] = useState(null)
 
     const { month, year } = getCurrentMonth()
 
@@ -47,9 +49,30 @@ export function Categories() {
         }
     }
 
+    const handleAdjustRemaining = (category) => {
+        setRemainingCategory(category)
+        setShowRemainingModal(true)
+    }
+
+    const handleUpdateRemaining = async (data) => {
+        if (!remainingCategory?.id) return
+        const result = await updateCategory(remainingCategory.id, { budget_limit: data.budget_limit })
+        if (result.success) {
+            setShowRemainingModal(false)
+            setRemainingCategory(null)
+        } else {
+            alert(`Failed to update remaining: ${result.error}`)
+        }
+    }
+
     const handleCloseModal = () => {
         setShowModal(false)
         setEditingCategory(null)
+    }
+
+    const handleCloseRemainingModal = () => {
+        setShowRemainingModal(false)
+        setRemainingCategory(null)
     }
 
     // Calculate total spent
@@ -106,6 +129,7 @@ export function Categories() {
                                 spent={category.spent}
                                 currencyPreference={currencyPreference}
                                 onEdit={handleEdit}
+                                onAdjustRemaining={handleAdjustRemaining}
                                 onDelete={handleDelete}
                             />
                         ))}
@@ -136,6 +160,21 @@ export function Categories() {
                     initialData={editingCategory}
                     onSubmit={editingCategory ? handleUpdate : handleAdd}
                     onCancel={handleCloseModal}
+                    isLoading={isLoading}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={showRemainingModal}
+                onClose={handleCloseRemainingModal}
+                title={remainingCategory ? `Adjust Remaining: ${remainingCategory.name}` : 'Adjust Remaining'}
+            >
+                <CategoryRemainingForm
+                    category={remainingCategory}
+                    spent={remainingCategory?.spent ?? 0}
+                    currencyPreference={currencyPreference}
+                    onSubmit={handleUpdateRemaining}
+                    onCancel={handleCloseRemainingModal}
                     isLoading={isLoading}
                 />
             </Modal>

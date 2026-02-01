@@ -1,4 +1,4 @@
-import { Trash2, Edit3 } from 'lucide-react'
+import { Trash2, Edit3, SlidersHorizontal } from 'lucide-react'
 import { ProgressBar } from './ui/ProgressBar'
 import { formatCurrency } from '../utils'
 
@@ -10,6 +10,7 @@ export function CategoryCard({
     spent = 0,
     currencyPreference = 'USD',
     onEdit,
+    onAdjustRemaining,
     onDelete
 }) {
     const { name, budget_limit, color_code } = category
@@ -31,6 +32,15 @@ export function CategoryCard({
                     </h3>
                 </div>
                 <div className="flex items-center gap-1">
+                    {onAdjustRemaining && (
+                        <button
+                            onClick={() => onAdjustRemaining(category)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title="Adjust remaining"
+                        >
+                            <SlidersHorizontal className="w-4 h-4" />
+                        </button>
+                    )}
                     {onEdit && (
                         <button
                             onClick={() => onEdit(category)}
