@@ -5,14 +5,14 @@ import { HeaderStats, BottomNav, ExpenseCard, Modal, Button } from '../../compon
 import { IncomeForm, ExpenseForm } from '../../components/forms'
 import { useAuth, useProfile, useIncome, useCategories, useExpenses, useBudgetSummary, useWeeklyLimit } from '../../hooks'
 import { useBudgetStore } from '../../stores'
-import { exportToCSV, prepareTransactionsForExport, isCurrentMonth, getMonthName, getCurrentMonth } from '../../utils'
+import { exportToCSV, prepareTransactionsForExport, getMonthName, getCurrentMonth } from '../../utils'
 import { checkMonthRollover, acknowledgeRollover } from '../../utils/rollover'
 
 export function Dashboard() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const { currencyPreference } = useProfile()
-    const { totalIncome, totalAssigned, remaining, status } = useBudgetSummary()
+    const { totalIncome, totalAssigned, status } = useBudgetSummary()
     const { currentMonthIncome, addIncome, isLoading: incomeLoading } = useIncome()
     const { categories } = useCategories()
     const { currentMonthExpenses, addExpense, deleteExpense, isLoading: expensesLoading } = useExpenses()
@@ -21,7 +21,7 @@ export function Dashboard() {
 
     const [showIncomeModal, setShowIncomeModal] = useState(false)
     const [showExpenseModal, setShowExpenseModal] = useState(false)
-    const [showRolloverModal, setShowRolloverModal] = useState(false)
+    const [showRolloverModal, setShowRolloverModal] = useState(() => checkMonthRollover().isNewMonth)
 
     // Load all data on mount
     useEffect(() => {
@@ -29,14 +29,6 @@ export function Dashboard() {
             fetchAllData(user.id)
         }
     }, [user?.id, fetchAllData])
-
-    // Check for month rollover
-    useEffect(() => {
-        const { isNewMonth } = checkMonthRollover()
-        if (isNewMonth) {
-            setShowRolloverModal(true)
-        }
-    }, [])
 
     const { month, year } = getCurrentMonth()
 

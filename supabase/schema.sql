@@ -55,6 +55,19 @@ CREATE TABLE categories (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Category Budgets table
+-- Stores per-month budgeted amounts per category (supports rollover)
+CREATE TABLE category_budgets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    budget_month DATE NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, category_id, budget_month)
+);
+
 -- Expenses table
 -- Individual expense entries linked to categories
 CREATE TABLE expenses (
@@ -92,6 +105,9 @@ CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_income_sources_user_id ON income_sources(user_id);
 CREATE INDEX idx_income_sources_date ON income_sources(date);
 CREATE INDEX idx_categories_user_id ON categories(user_id);
+CREATE INDEX idx_category_budgets_user_id ON category_budgets(user_id);
+CREATE INDEX idx_category_budgets_category_id ON category_budgets(category_id);
+CREATE INDEX idx_category_budgets_budget_month ON category_budgets(budget_month);
 CREATE INDEX idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX idx_expenses_date ON expenses(date);
 CREATE INDEX idx_expenses_category_id ON expenses(category_id);
@@ -105,6 +121,7 @@ CREATE INDEX idx_debts_user_id ON debts(user_id);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE income_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE category_budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE debts ENABLE ROW LEVEL SECURITY;
 
@@ -160,6 +177,24 @@ CREATE POLICY "Users can update their own categories"
 
 CREATE POLICY "Users can delete their own categories"
     ON categories FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Category Budgets policies
+CREATE POLICY "Users can view their own category budgets"
+    ON category_budgets FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own category budgets"
+    ON category_budgets FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own category budgets"
+    ON category_budgets FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own category budgets"
+    ON category_budgets FOR DELETE
     USING (auth.uid() = user_id);
 
 -- Expenses policies
@@ -224,6 +259,11 @@ CREATE TRIGGER update_income_sources_updated_at
 
 CREATE TRIGGER update_categories_updated_at
     BEFORE UPDATE ON categories
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_category_budgets_updated_at
+    BEFORE UPDATE ON category_budgets
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

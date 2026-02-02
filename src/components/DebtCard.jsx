@@ -14,7 +14,6 @@ export function DebtCard({
 }) {
     const { name, total_balance, amount_paid, interest_rate } = debt
     const remaining = total_balance - amount_paid
-    const percentage = Math.round((amount_paid / Math.max(total_balance, 1)) * 100)
     const isPaidOff = remaining <= 0
 
     return (

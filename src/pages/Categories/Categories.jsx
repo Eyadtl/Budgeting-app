@@ -12,6 +12,7 @@ export function Categories() {
         totalBudgeted,
         addCategory,
         updateCategory,
+        updateCategoryBudget,
         deleteCategory,
         isLoading
     } = useCategories()
@@ -56,7 +57,7 @@ export function Categories() {
 
     const handleUpdateRemaining = async (data) => {
         if (!remainingCategory?.id) return
-        const result = await updateCategory(remainingCategory.id, { budget_limit: data.budget_limit })
+        const result = await updateCategoryBudget(remainingCategory.id, data.amount)
         if (result.success) {
             setShowRemainingModal(false)
             setRemainingCategory(null)

@@ -19,7 +19,7 @@ const currencies = [
 export function Profile() {
     const navigate = useNavigate()
     const { user, logout } = useAuth()
-    const { profile, currencyPreference, monthlyIncomeGoal, updateProfile, isLoading } = useProfile()
+    const { currencyPreference, monthlyIncomeGoal, updateProfile, isLoading } = useProfile()
     const { profile: budgetProfile, incomeSources, expenses, categories } = useBudgetStore()
 
     const [showSettingsModal, setShowSettingsModal] = useState(false)

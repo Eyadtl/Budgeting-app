@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { supabase, isSupabaseConfigured } from '../services/supabase/supabase'
+import { isSupabaseConfigured } from '../services/supabase/supabase'
 import { onAuthStateChange, getSession, signIn, signUp, signOut } from '../services/supabase/auth'
 
 /**
@@ -22,7 +22,7 @@ import { onAuthStateChange, getSession, signIn, signUp, signOut } from '../servi
  * @property {function} clearError
  */
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set) => ({
     user: null,
     isLoading: true,
     isAuthenticated: false,

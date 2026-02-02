@@ -27,8 +27,9 @@ export function CategoryRemainingForm({
     isLoading = false
 }) {
     const spent = useMemo(() => toNumber(spentProp ?? category?.spent, 0), [spentProp, category?.spent])
-    const budgetLimit = useMemo(() => toNumber(category?.budget_limit, 0), [category?.budget_limit])
-    const remaining = useMemo(() => budgetLimit - spent, [budgetLimit, spent])
+    const carryover = useMemo(() => toNumber(category?.carryover, 0), [category?.carryover])
+    const budgeted = useMemo(() => toNumber(category?.budgeted ?? category?.budget_limit, 0), [category?.budgeted, category?.budget_limit])
+    const remaining = useMemo(() => carryover + budgeted - spent, [carryover, budgeted, spent])
 
     const [mode, setMode] = useState('add')
     const [amount, setAmount] = useState('')
@@ -42,16 +43,17 @@ export function CategoryRemainingForm({
     const preview = useMemo(() => {
         const amt = Number.isFinite(parsedAmount) ? parsedAmount : 0
 
-        let nextBudget = budgetLimit
-        if (mode === 'add') nextBudget = budgetLimit + amt
-        if (mode === 'remove') nextBudget = Math.max(spent, budgetLimit - amt)
-        if (mode === 'set') nextBudget = Math.max(0, spent + amt)
+        let nextBudgeted = budgeted
+        if (mode === 'add') nextBudgeted = budgeted + amt
+        if (mode === 'remove') nextBudgeted = budgeted - amt
+        if (mode === 'set') nextBudgeted = spent + amt - carryover
 
         return {
-            budgetLimit: nextBudget,
-            remaining: nextBudget - spent
+            budgeted: nextBudgeted,
+            available: carryover + nextBudgeted,
+            remaining: carryover + nextBudgeted - spent
         }
-    }, [mode, parsedAmount, budgetLimit, spent])
+    }, [mode, parsedAmount, budgeted, carryover, spent])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -77,13 +79,13 @@ export function CategoryRemainingForm({
             return
         }
 
-        if (mode === 'remove' && parsedAmount > Math.max(0, remaining)) {
+        if (mode === 'remove' && (remaining <= 0 || parsedAmount > remaining)) {
             setError('You cannot remove more than the remaining amount.')
             return
         }
 
         await onSubmit({
-            budget_limit: preview.budgetLimit
+            amount: preview.budgeted
         })
     }
 
@@ -103,9 +105,15 @@ export function CategoryRemainingForm({
                     </span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-slate-600 dark:text-slate-400">Budget</span>
+                    <span className="text-slate-600 dark:text-slate-400">Budgeted (this month)</span>
                     <span className="font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(budgetLimit, currencyPreference)}
+                        {formatCurrency(budgeted, currencyPreference)}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-slate-600 dark:text-slate-400">Carryover</span>
+                    <span className="font-medium text-slate-900 dark:text-white">
+                        {formatCurrency(carryover, currencyPreference)}
                     </span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-1">
@@ -149,9 +157,15 @@ export function CategoryRemainingForm({
 
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm">
                 <div className="flex items-center justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">New budget</span>
+                    <span className="text-slate-600 dark:text-slate-400">New budgeted</span>
                     <span className="font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(preview.budgetLimit, currencyPreference)}
+                        {formatCurrency(preview.budgeted, currencyPreference)}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                    <span className="text-slate-600 dark:text-slate-400">New available</span>
+                    <span className="font-medium text-slate-900 dark:text-white">
+                        {formatCurrency(preview.available, currencyPreference)}
                     </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">

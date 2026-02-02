@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useBudgetStore } from '../stores'
 import { useAuth } from './useAuth'
-import { getCurrentMonth, isCurrentMonth } from '../utils'
+import { isCurrentMonth } from '../utils'
 
 /**
  * Custom hook for income management

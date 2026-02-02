@@ -72,7 +72,7 @@ export function getRecurringExpenseTemplates(expenses) {
  * @returns {Object}
  */
 export function createMonthlyInstance(template, newDate = new Date()) {
-    const { id, created_at, updated_at, ...rest } = template
+    const { id: _id, created_at: _created_at, updated_at: _updated_at, ...rest } = template
 
     const dateStr = newDate.toISOString().split('T')[0]
 

@@ -14,9 +14,10 @@ export function CategoryCard({
     onDelete
 }) {
     const { name, budget_limit, color_code } = category
-    const percentage = Math.round((spent / Math.max(budget_limit, 1)) * 100)
-    const remaining = budget_limit - spent
-    const isOverBudget = spent > budget_limit
+    const monthlyBudget = Number(category?.budgeted ?? budget_limit ?? 0)
+    const available = Number(category?.available ?? monthlyBudget)
+    const remaining = Number(category?.remaining ?? (available - spent))
+    const isOverBudget = remaining < 0
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -63,7 +64,7 @@ export function CategoryCard({
             {/* Progress */}
             <ProgressBar
                 value={spent}
-                max={budget_limit}
+                max={Math.max(available, 0)}
                 color={color_code || '#6366f1'}
                 showLabel={false}
                 size="md"
@@ -73,7 +74,10 @@ export function CategoryCard({
             {/* Stats */}
             <div className="flex items-center justify-between text-sm">
                 <span className={`font-medium ${isOverBudget ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                    {formatCurrency(spent, currencyPreference)} / {formatCurrency(budget_limit, currencyPreference)}
+                    {formatCurrency(spent, currencyPreference)} / {formatCurrency(available, currencyPreference)}
+                    <span className="text-xs ml-1 opacity-70">
+                        (Monthly {formatCurrency(monthlyBudget, currencyPreference)})
+                    </span>
                 </span>
                 <span className={`${isOverBudget
                         ? 'text-red-600 dark:text-red-400 font-semibold'

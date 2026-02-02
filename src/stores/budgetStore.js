@@ -29,6 +29,15 @@ import { supabase } from '../services/supabase/supabase'
  */
 
 /**
+ * @typedef {Object} CategoryBudget
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} category_id
+ * @property {string} budget_month
+ * @property {number} amount
+ */
+
+/**
  * @typedef {Object} Expense
  * @property {string} id
  * @property {string} user_id
@@ -54,6 +63,7 @@ export const useBudgetStore = create((set, get) => ({
     profile: null,
     incomeSources: [],
     categories: [],
+    categoryBudgets: [],
     expenses: [],
     debts: [],
     isLoading: false,
@@ -254,6 +264,7 @@ export const useBudgetStore = create((set, get) => ({
             if (error) throw error
             set((state) => ({
                 categories: state.categories.filter((c) => c.id !== id),
+                categoryBudgets: state.categoryBudgets.filter((b) => b.category_id !== id),
                 // Update related expenses to reflect category deletion (SET NULL behavior)
                 expenses: state.expenses.map((e) => 
                     e.category_id === id 
@@ -263,6 +274,72 @@ export const useBudgetStore = create((set, get) => ({
             }))
             return { success: true }
         } catch (error) {
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
+    // Category budget actions
+    fetchCategoryBudgets: async (userId) => {
+        set({ isLoading: true, error: null })
+        try {
+            const { data, error } = await supabase
+                .from('category_budgets')
+                .select('*')
+                .eq('user_id', userId)
+                .order('budget_month', { ascending: false })
+
+            if (error) throw error
+            set({ categoryBudgets: data || [], isLoading: false })
+        } catch (error) {
+            // Graceful fallback if the table hasn't been added yet
+            if (
+                error.message?.includes('category_budgets') &&
+                (error.message?.includes('does not exist') || error.message?.includes('schema cache'))
+            ) {
+                set({ categoryBudgets: [], isLoading: false })
+                return
+            }
+
+            set({ error: error.message, isLoading: false })
+        }
+    },
+
+    upsertCategoryBudget: async (budget) => {
+        try {
+            const { data, error } = await supabase
+                .from('category_budgets')
+                .upsert(budget, { onConflict: 'user_id,category_id,budget_month' })
+                .select()
+                .single()
+
+            if (error) throw error
+
+            set((state) => {
+                const next = state.categoryBudgets.filter((b) => !(
+                    b.user_id === data.user_id &&
+                    b.category_id === data.category_id &&
+                    b.budget_month === data.budget_month
+                ))
+
+                return {
+                    categoryBudgets: [data, ...next]
+                }
+            })
+
+            return { success: true, data }
+        } catch (error) {
+            // Graceful fallback if the table hasn't been added yet
+            if (
+                error.message?.includes('category_budgets') &&
+                (error.message?.includes('does not exist') || error.message?.includes('schema cache'))
+            ) {
+                return {
+                    success: false,
+                    error: "Category budgets are not available because the database hasn't been updated yet."
+                }
+            }
+
             set({ error: error.message })
             return { success: false, error: error.message }
         }
@@ -438,11 +515,12 @@ export const useBudgetStore = create((set, get) => ({
 
     // Fetch all data for a user
     fetchAllData: async (userId) => {
-        const { fetchProfile, fetchIncomeSources, fetchCategories, fetchExpenses, fetchDebts } = get()
+        const { fetchProfile, fetchIncomeSources, fetchCategories, fetchCategoryBudgets, fetchExpenses, fetchDebts } = get()
         await Promise.all([
             fetchProfile(userId),
             fetchIncomeSources(userId),
             fetchCategories(userId),
+            fetchCategoryBudgets(userId),
             fetchExpenses(userId),
             fetchDebts(userId),
         ])

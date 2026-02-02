@@ -9,7 +9,6 @@ export function Income() {
     const { currencyPreference } = useProfile()
     const {
         currentMonthIncome,
-        recurringIncome,
         totalMonthlyIncome,
         addIncome,
         deleteIncome,
