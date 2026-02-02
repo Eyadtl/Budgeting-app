@@ -41,6 +41,7 @@ export function useCategories() {
         error,
         fetchCategories,
         fetchCategoryBudgets,
+        fetchExpenses,
         addCategory,
         updateCategory,
         deleteCategory,
@@ -58,6 +59,13 @@ export function useCategories() {
             fetchCategoryBudgets(user.id)
         }
     }, [user?.id, categoryBudgets.length, fetchCategoryBudgets])
+
+    // Categories "remaining" depends on expenses; ensure they're loaded when visiting Categories directly.
+    useEffect(() => {
+        if (user?.id && expenses.length === 0) {
+            fetchExpenses(user.id)
+        }
+    }, [user?.id, expenses.length, fetchExpenses])
 
     const { month: currentMonth, year: currentYear } = getCurrentMonth()
     const currentMonthKey = useMemo(() => toMonthKeyFromParts(currentYear, currentMonth), [currentYear, currentMonth])
