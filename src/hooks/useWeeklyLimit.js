@@ -11,6 +11,12 @@ import {
     parseDate
 } from '../utils'
 
+const isIncludedInWeeklyLimit = (expense) => {
+    const isDebtPayment = expense.name && expense.name.startsWith('Debt Payment:')
+    const isExcluded = expense.exclude_from_limit === true
+    return !isDebtPayment && !isExcluded
+}
+
 /**
  * Custom hook for weekly spending limit calculations
  * Provides real-time weekly limit data based on remaining income
@@ -18,7 +24,7 @@ import {
 export function useWeeklyLimit() {
     const { profile } = useBudgetStore()
     const { totalMonthlyIncome } = useIncome()
-    const { currentMonthExpenses, totalMonthlyExpenses } = useExpenses()
+    const { currentMonthExpenses } = useExpenses()
 
     // Check if feature is enabled (default to true)
     const isEnabled = profile?.weekly_limit_enabled ?? true
@@ -28,10 +34,7 @@ export function useWeeklyLimit() {
         const weekStart = getStartOfWeek()
         return currentMonthExpenses.filter(expense => {
             const expenseDate = parseDate(expense.date)
-            const isDebtPayment = expense.name && expense.name.startsWith('Debt Payment:')
-            // Check if expense is explicitly excluded from limit
-            const isExcluded = expense.exclude_from_limit === true
-            return expenseDate >= weekStart && !isDebtPayment && !isExcluded
+            return expenseDate >= weekStart && isIncludedInWeeklyLimit(expense)
         })
     }, [currentMonthExpenses])
 
@@ -39,10 +42,17 @@ export function useWeeklyLimit() {
         return currentWeekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
     }, [currentWeekExpenses])
 
+    // Count only expenses that are part of weekly-limit tracking
+    const monthlyIncludedExpenses = useMemo(() => {
+        return currentMonthExpenses
+            .filter(isIncludedInWeeklyLimit)
+            .reduce((sum, exp) => sum + Number(exp.amount), 0)
+    }, [currentMonthExpenses])
+
     // Calculate limits
     const weeklyLimit = useMemo(() => {
-        return calculateWeeklyLimit(totalMonthlyIncome, totalMonthlyExpenses)
-    }, [totalMonthlyIncome, totalMonthlyExpenses])
+        return calculateWeeklyLimit(totalMonthlyIncome, monthlyIncludedExpenses)
+    }, [totalMonthlyIncome, monthlyIncludedExpenses])
 
     const proRatedLimit = useMemo(() => {
         return calculateProRatedWeeklyLimit(weeklyLimit)
@@ -50,14 +60,14 @@ export function useWeeklyLimit() {
 
     // Get status
     const status = useMemo(() => {
-        return getWeeklySpendingStatus(spentThisWeek, proRatedLimit)
-    }, [spentThisWeek, proRatedLimit])
+        return getWeeklySpendingStatus(spentThisWeek, weeklyLimit)
+    }, [spentThisWeek, weeklyLimit])
 
     // Calculate percentage for progress bar
     const percentageUsed = useMemo(() => {
-        if (proRatedLimit <= 0) return 100
-        return Math.min(100, Math.round((spentThisWeek / proRatedLimit) * 100))
-    }, [spentThisWeek, proRatedLimit])
+        if (weeklyLimit <= 0) return 100
+        return Math.min(100, Math.round((spentThisWeek / weeklyLimit) * 100))
+    }, [spentThisWeek, weeklyLimit])
 
     const daysRemaining = getDaysRemainingInWeek()
 
@@ -66,7 +76,7 @@ export function useWeeklyLimit() {
         weeklyLimit,
         proRatedLimit,
         spentThisWeek,
-        remainingThisWeek: Math.max(0, proRatedLimit - spentThisWeek),
+        remainingThisWeek: Math.max(0, weeklyLimit - spentThisWeek),
         percentageUsed,
         status,
         daysRemaining,

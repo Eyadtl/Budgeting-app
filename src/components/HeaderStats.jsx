@@ -11,7 +11,7 @@ export function HeaderStats({ totalIncome = 0, totalAssigned = 0, currencyPrefer
     // Weekly limit feature
     const {
         isEnabled,
-        proRatedLimit,
+        weeklyLimit,
         spentThisWeek,
         percentageUsed,
         status,
@@ -96,7 +96,7 @@ export function HeaderStats({ totalIncome = 0, totalAssigned = 0, currencyPrefer
             {isEnabled && totalIncome > 0 && (
                 <WeeklyLimitBar
                     spent={spentThisWeek}
-                    limit={proRatedLimit}
+                    limit={weeklyLimit}
                     percentageUsed={percentageUsed}
                     status={status}
                     daysRemaining={daysRemaining}
