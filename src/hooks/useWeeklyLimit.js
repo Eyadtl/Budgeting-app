@@ -17,9 +17,14 @@ const isIncludedInWeeklyLimit = (expense) => {
     return !isDebtPayment && !isExcluded
 }
 
+const isCountedForRemainingMonthlyMoney = (expense) => {
+    return Number(expense?.amount) > 0
+}
+
 /**
  * Custom hook for weekly spending limit calculations
- * Provides real-time weekly limit data based on remaining income
+ * Weekly limit is based on monthly money left after all expenses.
+ * Weekly "spent" only tracks expenses not marked as excluded.
  */
 export function useWeeklyLimit() {
     const { profile } = useBudgetStore()
@@ -42,17 +47,17 @@ export function useWeeklyLimit() {
         return currentWeekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
     }, [currentWeekExpenses])
 
-    // Count only expenses that are part of weekly-limit tracking
-    const monthlyIncludedExpenses = useMemo(() => {
+    // All expenses reduce the monthly money left, even if excluded from weekly tracking.
+    const monthlySpentFromIncome = useMemo(() => {
         return currentMonthExpenses
-            .filter(isIncludedInWeeklyLimit)
+            .filter(isCountedForRemainingMonthlyMoney)
             .reduce((sum, exp) => sum + Number(exp.amount), 0)
     }, [currentMonthExpenses])
 
     // Calculate limits
     const weeklyLimit = useMemo(() => {
-        return calculateWeeklyLimit(totalMonthlyIncome, monthlyIncludedExpenses)
-    }, [totalMonthlyIncome, monthlyIncludedExpenses])
+        return calculateWeeklyLimit(totalMonthlyIncome, monthlySpentFromIncome)
+    }, [totalMonthlyIncome, monthlySpentFromIncome])
 
     const proRatedLimit = useMemo(() => {
         return calculateProRatedWeeklyLimit(weeklyLimit)

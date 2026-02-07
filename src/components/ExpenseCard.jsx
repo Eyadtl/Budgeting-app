@@ -31,7 +31,7 @@ export function ExpenseCard({
                         <Repeat className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" title="Recurring Expense" />
                     )}
                     {exclude_from_limit && (
-                        <EyeOff className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" title="Excluded from Weekly Limit" />
+                        <EyeOff className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" title="Excluded from weekly spent tracking" />
                     )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">

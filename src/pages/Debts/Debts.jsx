@@ -53,11 +53,25 @@ export function Debts() {
         setShowPaymentModal(true)
     }
 
-    const handlePaymentSubmit = async (amount) => {
-        const result = await recordPayment(payingDebt.id, amount)
+    const handlePaymentSubmit = async (payload) => {
+        const payment = typeof payload === 'number'
+            ? { amount: payload, exclude_from_limit: false }
+            : payload
+
+        const result = await recordPayment(
+            payingDebt.id,
+            payment.amount,
+            { exclude_from_limit: payment.exclude_from_limit }
+        )
+
         if (result.success) {
             setShowPaymentModal(false)
             setPayingDebt(null)
+            if (result.warning) {
+                alert(result.warning)
+            }
+        } else if (result.error) {
+            alert(`Failed to record payment: ${result.error}`)
         }
     }
 

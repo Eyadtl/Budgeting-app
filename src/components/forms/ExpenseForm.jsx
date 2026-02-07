@@ -100,7 +100,7 @@ export function ExpenseForm({
                     className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">
-                    Exclude from weekly limit calculation
+                    Exclude from weekly spent tracking (still reduces monthly money)
                 </span>
             </label>
 

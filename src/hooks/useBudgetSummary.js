@@ -15,7 +15,12 @@ export function useBudgetSummary() {
     // Calculate actual debt payments made this month
     const monthlyDebtPayments = useMemo(() => {
         return currentMonthExpenses
-            .filter(e => e.name && e.name.startsWith('Debt Payment:') && !e.category_id)
+            .filter(e =>
+                e.name &&
+                e.name.startsWith('Debt Payment:') &&
+                !e.category_id &&
+                e.exclude_from_limit !== true
+            )
             .reduce((sum, e) => sum + Number(e.amount), 0)
     }, [currentMonthExpenses])
 

@@ -14,12 +14,16 @@ export function PaymentForm({
     isLoading = false
 }) {
     const [amount, setAmount] = useState('')
+    const [excludeFromMonthlyLimit, setExcludeFromMonthlyLimit] = useState(false)
     const remaining = debt.total_balance - debt.amount_paid
 
     const handleSubmit = (e) => {
         e.preventDefault()
         const paymentAmount = parseFloat(amount) || 0
-        onSubmit(paymentAmount)
+        onSubmit({
+            amount: paymentAmount,
+            exclude_from_limit: excludeFromMonthlyLimit
+        })
     }
 
     const handlePayFull = () => {
@@ -45,7 +49,7 @@ export function PaymentForm({
                     label="Payment Amount"
                     type="number"
                     step="0.01"
-                    min="0"
+                    min="0.01"
                     max={remaining}
                     placeholder="0.00"
                     value={amount}
@@ -62,6 +66,18 @@ export function PaymentForm({
             >
                 Pay remaining balance ({formatCurrency(remaining, currencyPreference)})
             </button>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={excludeFromMonthlyLimit}
+                    onChange={(e) => setExcludeFromMonthlyLimit(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Exclude from monthly budget limit
+                </span>
+            </label>
 
             <div className="flex gap-3 pt-2">
                 <Button
