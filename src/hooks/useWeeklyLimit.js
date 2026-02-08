@@ -47,7 +47,7 @@ export function useWeeklyLimit() {
         return currentWeekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
     }, [currentWeekExpenses])
 
-    // All expenses reduce the monthly money left, even if excluded from weekly tracking.
+    // All expenses reduce remaining monthly money, including excluded ones.
     const monthlySpentFromIncome = useMemo(() => {
         return currentMonthExpenses
             .filter(isCountedForRemainingMonthlyMoney)

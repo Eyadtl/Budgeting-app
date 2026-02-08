@@ -4,14 +4,15 @@
  */
 
 /**
- * Calculate weeks remaining in the current month
- * @returns {number} Weeks remaining (minimum 1)
+ * Calculate the total number of weeks in the current month
+ * using a fixed calendar divisor for stability during the month.
+ * @returns {number} Weeks in month (minimum 1)
  */
-export function getWeeksRemainingInMonth() {
+export function getWeeksInCurrentMonth() {
     const now = new Date()
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    const daysRemaining = lastDay.getDate() - now.getDate() + 1
-    return Math.max(1, Math.ceil(daysRemaining / 7))
+    const daysInMonth = lastDay.getDate()
+    return Math.max(1, Math.ceil(daysInMonth / 7))
 }
 
 /**
@@ -27,7 +28,9 @@ export function getDaysRemainingInWeek() {
 }
 
 /**
- * Calculate the weekly spending limit
+ * Calculate the weekly spending limit.
+ * Uses a stable month-level divisor so the limit only changes
+ * when income or expenses change (not every day).
  * @param {number} totalIncome - Total monthly income
  * @param {number} totalExpenses - Actual expenses spent this month
  * @returns {number} Weekly limit amount
@@ -35,8 +38,8 @@ export function getDaysRemainingInWeek() {
 export function calculateWeeklyLimit(totalIncome, totalExpenses) {
     const remaining = totalIncome - totalExpenses
     if (remaining <= 0) return 0
-    const weeksRemaining = getWeeksRemainingInMonth()
-    return remaining / weeksRemaining
+    const weeksInMonth = getWeeksInCurrentMonth()
+    return remaining / weeksInMonth
 }
 
 /**
