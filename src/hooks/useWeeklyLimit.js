@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useBudgetStore } from '../stores'
 import { useIncome } from './useIncome'
 import { useExpenses } from './useExpenses'
+import { useBudgetSummary } from './useBudgetSummary'
 import {
     calculateWeeklyLimit,
     calculateProRatedWeeklyLimit,
@@ -17,47 +18,73 @@ const isIncludedInWeeklyLimit = (expense) => {
     return !isDebtPayment && !isExcluded
 }
 
-const isCountedForRemainingMonthlyMoney = (expense) => {
-    return Number(expense?.amount) > 0
+const isDebtPaymentExpense = (expense) => {
+    return expense?.name && expense.name.startsWith('Debt Payment:')
 }
+
+const isExcludedExpense = (expense) => expense?.exclude_from_limit === true
+
+const isPaidExpense = (expense) => Number(expense?.amount) > 0
 
 /**
  * Custom hook for weekly spending limit calculations
- * Weekly limit is based on monthly money left after all expenses.
- * Weekly "spent" only tracks expenses not marked as excluded.
+ * Weekly limit updates each week from remaining monthly money.
+ * Current-week spending tracks only expenses not marked as excluded,
+ * while excluded expenses still reduce the weekly pool.
  */
 export function useWeeklyLimit() {
     const { profile } = useBudgetStore()
     const { totalMonthlyIncome } = useIncome()
+    const { remaining: remainingAfterAssigned } = useBudgetSummary()
     const { currentMonthExpenses } = useExpenses()
 
     // Check if feature is enabled (default to true)
     const isEnabled = profile?.weekly_limit_enabled ?? true
 
+    const weekStartMs = getStartOfWeek().getTime()
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    const todayEndMs = today.getTime()
+
     // Calculate current week's expenses
     const currentWeekExpenses = useMemo(() => {
-        const weekStart = getStartOfWeek()
         return currentMonthExpenses.filter(expense => {
-            const expenseDate = parseDate(expense.date)
-            return expenseDate >= weekStart && isIncludedInWeeklyLimit(expense)
+            const expenseDateMs = parseDate(expense.date).getTime()
+            return expenseDateMs >= weekStartMs && isIncludedInWeeklyLimit(expense)
         })
-    }, [currentMonthExpenses])
+    }, [currentMonthExpenses, weekStartMs])
 
     const spentThisWeek = useMemo(() => {
         return currentWeekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
     }, [currentWeekExpenses])
 
-    // All expenses reduce remaining monthly money, including excluded ones.
-    const monthlySpentFromIncome = useMemo(() => {
+    // Reduce weekly pool by:
+    // 1) non-debt expenses already paid before this week (carryover impact), and
+    // 2) non-debt excluded expenses in this week (immediate impact, since they do not increase spentThisWeek).
+    const paidImpactForWeeklyPool = useMemo(() => {
         return currentMonthExpenses
-            .filter(isCountedForRemainingMonthlyMoney)
+            .filter(isPaidExpense)
+            .filter(expense => {
+                if (isDebtPaymentExpense(expense)) return false
+
+                const expenseDateMs = parseDate(expense.date).getTime()
+                const isBeforeWeek = expenseDateMs < weekStartMs
+                const isExcluded = isExcludedExpense(expense)
+                const isPaidNow = expenseDateMs <= todayEndMs
+
+                return isPaidNow && (isBeforeWeek || isExcluded)
+            })
             .reduce((sum, exp) => sum + Number(exp.amount), 0)
-    }, [currentMonthExpenses])
+    }, [currentMonthExpenses, weekStartMs, todayEndMs])
 
     // Calculate limits
     const weeklyLimit = useMemo(() => {
-        return calculateWeeklyLimit(totalMonthlyIncome, monthlySpentFromIncome)
-    }, [totalMonthlyIncome, monthlySpentFromIncome])
+        const startingPool = Math.max(
+            0,
+            Number.isFinite(remainingAfterAssigned) ? remainingAfterAssigned : totalMonthlyIncome
+        )
+        return calculateWeeklyLimit(startingPool, paidImpactForWeeklyPool)
+    }, [remainingAfterAssigned, totalMonthlyIncome, paidImpactForWeeklyPool])
 
     const proRatedLimit = useMemo(() => {
         return calculateProRatedWeeklyLimit(weeklyLimit)

@@ -75,7 +75,7 @@ export function PaymentForm({
                     className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">
-                    Exclude from monthly budget limit
+                    Exclude from weekly spent tracking (still lowers weekly limit)
                 </span>
             </label>
 

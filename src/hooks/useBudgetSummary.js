@@ -18,8 +18,7 @@ export function useBudgetSummary() {
             .filter(e =>
                 e.name &&
                 e.name.startsWith('Debt Payment:') &&
-                !e.category_id &&
-                e.exclude_from_limit !== true
+                !e.category_id
             )
             .reduce((sum, e) => sum + Number(e.amount), 0)
     }, [currentMonthExpenses])

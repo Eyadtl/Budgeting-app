@@ -1,18 +1,20 @@
 /**
  * Weekly Spending Limit Utility Functions
- * Calculates weekly spending limits based on remaining monthly income
+ * Calculates weekly spending limits from remaining monthly income
  */
 
 /**
- * Calculate the total number of weeks in the current month
- * using a fixed calendar divisor for stability during the month.
- * @returns {number} Weeks in month (minimum 1)
+ * Get the start of the current week (Monday at 00:00:00)
+ * @param {Date} [referenceDate]
+ * @returns {Date} Monday of the current week
  */
-export function getWeeksInCurrentMonth() {
-    const now = new Date()
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    return Math.max(1, Math.ceil(daysInMonth / 7))
+export function getStartOfWeek(referenceDate = new Date()) {
+    const now = referenceDate
+    const day = now.getDay()
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(now.getFullYear(), now.getMonth(), diff)
+    monday.setHours(0, 0, 0, 0)
+    return monday
 }
 
 /**
@@ -28,18 +30,35 @@ export function getDaysRemainingInWeek() {
 }
 
 /**
+ * Calculate remaining weeks in the current month from this week boundary.
+ * This stays stable during the week and updates when a new week starts.
+ * @returns {number} Weeks remaining in current month (minimum 1)
+ */
+export function getWeeksRemainingInCurrentMonth() {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+    const weekStart = getStartOfWeek(now)
+    const effectiveStart = weekStart < monthStart ? monthStart : weekStart
+
+    const msPerDay = 24 * 60 * 60 * 1000
+    const daysRemaining = Math.floor((monthEnd - effectiveStart) / msPerDay) + 1
+
+    return Math.max(1, Math.ceil(daysRemaining / 7))
+}
+
+/**
  * Calculate the weekly spending limit.
- * Uses a stable month-level divisor so the limit only changes
- * when income or expenses change (not every day).
- * @param {number} totalIncome - Total monthly income
- * @param {number} totalExpenses - Actual expenses spent this month
+ * @param {number} startingPool - Current monthly pool available for weekly planning
+ * @param {number} poolAdjustments - Expense adjustments that should reduce weekly pool
  * @returns {number} Weekly limit amount
  */
-export function calculateWeeklyLimit(totalIncome, totalExpenses) {
-    const remaining = totalIncome - totalExpenses
+export function calculateWeeklyLimit(startingPool, poolAdjustments = 0) {
+    const remaining = startingPool - poolAdjustments
     if (remaining <= 0) return 0
-    const weeksInMonth = getWeeksInCurrentMonth()
-    return remaining / weeksInMonth
+    const weeksRemaining = getWeeksRemainingInCurrentMonth()
+    return remaining / weeksRemaining
 }
 
 /**
@@ -66,15 +85,3 @@ export function getWeeklySpendingStatus(spent, limit) {
     return 'safe'
 }
 
-/**
- * Get the start of the current week (Monday at 00:00:00)
- * @returns {Date} Monday of the current week
- */
-export function getStartOfWeek() {
-    const now = new Date()
-    const day = now.getDay()
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-    const monday = new Date(now.getFullYear(), now.getMonth(), diff)
-    monday.setHours(0, 0, 0, 0)
-    return monday
-}
