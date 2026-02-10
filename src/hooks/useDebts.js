@@ -49,7 +49,7 @@ export function useDebts() {
         return updateDebt(id, data)
     }
 
-    const recordPayment = async (debtId, amount, options = {}) => {
+    const recordPayment = async (debtId, amount) => {
         const debt = debts.find(d => d.id === debtId)
         if (!debt) return { success: false, error: 'Debt not found' }
         if (!user?.id) return { success: false, error: 'Not authenticated' }
@@ -76,7 +76,7 @@ export function useDebts() {
             category_id: null,
             date: today,
             is_recurring: false,
-            exclude_from_limit: options.exclude_from_limit === true
+            exclude_from_limit: true
         })
 
         if (!expenseResult.success) {

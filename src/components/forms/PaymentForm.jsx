@@ -14,16 +14,12 @@ export function PaymentForm({
     isLoading = false
 }) {
     const [amount, setAmount] = useState('')
-    const [excludeFromMonthlyLimit, setExcludeFromMonthlyLimit] = useState(false)
     const remaining = debt.total_balance - debt.amount_paid
 
     const handleSubmit = (e) => {
         e.preventDefault()
         const paymentAmount = parseFloat(amount) || 0
-        onSubmit({
-            amount: paymentAmount,
-            exclude_from_limit: excludeFromMonthlyLimit
-        })
+        onSubmit({ amount: paymentAmount })
     }
 
     const handlePayFull = () => {
@@ -67,17 +63,9 @@ export function PaymentForm({
                 Pay remaining balance ({formatCurrency(remaining, currencyPreference)})
             </button>
 
-            <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                    type="checkbox"
-                    checked={excludeFromMonthlyLimit}
-                    onChange={(e) => setExcludeFromMonthlyLimit(e.target.checked)}
-                    className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">
-                    Exclude from weekly spent tracking (still lowers weekly limit)
-                </span>
-            </label>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+                Debt payments are excluded from weekly spending and weekly limit calculations.
+            </p>
 
             <div className="flex gap-3 pt-2">
                 <Button

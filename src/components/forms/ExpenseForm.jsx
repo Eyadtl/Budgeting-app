@@ -21,8 +21,14 @@ export function ExpenseForm({
         exclude_from_limit: initialData?.exclude_from_limit || false
     })
 
+    const hasSelectedCategory = Boolean(formData.category_id)
+
     const handleChange = (field) => (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
+        if (field === 'category_id' && value) {
+            setFormData(prev => ({ ...prev, [field]: value, exclude_from_limit: false }))
+            return
+        }
         setFormData(prev => ({ ...prev, [field]: value }))
     }
 
@@ -97,10 +103,14 @@ export function ExpenseForm({
                     type="checkbox"
                     checked={formData.exclude_from_limit}
                     onChange={handleChange('exclude_from_limit')}
+                    disabled={hasSelectedCategory}
                     className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">
-                    Exclude from weekly spent tracking (still lowers weekly limit)
+                    {hasSelectedCategory
+                        ? 'Categorized expenses are already excluded from weekly tracking by default.'
+                        : 'Exclude from weekly spent tracking (still lowers weekly limit).'
+                    }
                 </span>
             </label>
 
