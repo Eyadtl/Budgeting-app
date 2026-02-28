@@ -6,4 +6,5 @@ export { useExpenses } from './useExpenses'
 export { useDebts } from './useDebts'
 export { useBudgetSummary } from './useBudgetSummary'
 export { useWeeklyLimit } from './useWeeklyLimit'
+export { useSavings } from './useSavings'
 

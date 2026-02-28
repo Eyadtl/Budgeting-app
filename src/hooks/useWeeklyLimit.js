@@ -55,7 +55,7 @@ export const shouldReduceWeeklyPool = (expense, weekStartMs, todayEndMs) => {
  */
 export function useWeeklyLimit() {
     const { profile } = useBudgetStore()
-    const { totalMonthlyIncome } = useIncome()
+    const { effectiveMonthlyIncome } = useIncome()
     const { remaining: remainingAfterAssigned } = useBudgetSummary()
     const { currentMonthExpenses } = useExpenses()
 
@@ -92,10 +92,10 @@ export function useWeeklyLimit() {
     const weeklyLimit = useMemo(() => {
         const startingPool = Math.max(
             0,
-            Number.isFinite(remainingAfterAssigned) ? remainingAfterAssigned : totalMonthlyIncome
+            Number.isFinite(remainingAfterAssigned) ? remainingAfterAssigned : effectiveMonthlyIncome
         )
         return calculateWeeklyLimit(startingPool, paidImpactForWeeklyPool)
-    }, [remainingAfterAssigned, totalMonthlyIncome, paidImpactForWeeklyPool])
+    }, [remainingAfterAssigned, effectiveMonthlyIncome, paidImpactForWeeklyPool])
 
     const proRatedLimit = useMemo(() => {
         return calculateProRatedWeeklyLimit(weeklyLimit)

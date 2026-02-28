@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Plus, Download, Receipt, DollarSign, ArrowRight } from 'lucide-react'
+import { Download, Receipt, DollarSign, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { HeaderStats, BottomNav, ExpenseCard, Modal, Button } from '../../components'
+import { HeaderStats, BottomNav, ExpenseCard, Modal, Button, Input } from '../../components'
 import { IncomeForm, ExpenseForm } from '../../components/forms'
-import { useAuth, useProfile, useIncome, useCategories, useExpenses, useBudgetSummary, useWeeklyLimit } from '../../hooks'
+import {
+    useAuth,
+    useProfile,
+    useIncome,
+    useCategories,
+    useExpenses,
+    useBudgetSummary,
+    useWeeklyLimit,
+    useSavings
+} from '../../hooks'
 import { useBudgetStore } from '../../stores'
-import { exportToCSV, prepareTransactionsForExport, getMonthName, getCurrentMonth } from '../../utils'
+import {
+    exportToCSV,
+    prepareTransactionsForExport,
+    getMonthName,
+    getCurrentMonth,
+    formatCurrency
+} from '../../utils'
 import { checkMonthRollover, acknowledgeRollover } from '../../utils/rollover'
 
 export function Dashboard() {
@@ -16,19 +31,61 @@ export function Dashboard() {
     const { currentMonthIncome, addIncome, isLoading: incomeLoading } = useIncome()
     const { categories } = useCategories()
     const { currentMonthExpenses, addExpense, deleteExpense, isLoading: expensesLoading } = useExpenses()
-    const { fetchAllData } = useBudgetStore()
+    const { fetchAllData, ensureCurrentMonthWeeklyCarryover } = useBudgetStore()
     const { isExceeded, isEnabled: weeklyLimitEnabled } = useWeeklyLimit()
+    const {
+        currentMonthRolloverPrompt,
+        isRolloverPromptReady,
+        acceptCurrentMonthRollover,
+        skipCurrentMonthRollover
+    } = useSavings()
 
     const [showIncomeModal, setShowIncomeModal] = useState(false)
     const [showExpenseModal, setShowExpenseModal] = useState(false)
     const [showRolloverModal, setShowRolloverModal] = useState(() => checkMonthRollover().isNewMonth)
+    const [rolloverSavingsAmount, setRolloverSavingsAmount] = useState('')
+    const [rolloverSavingsError, setRolloverSavingsError] = useState('')
+    const [isProcessingSavingsRollover, setIsProcessingSavingsRollover] = useState(false)
+    const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false)
 
     // Load all data on mount
     useEffect(() => {
-        if (user?.id) {
-            fetchAllData(user.id)
+        let isCancelled = false
+
+        if (!user?.id) {
+            setHasLoadedInitialData(false)
+            return () => {
+                isCancelled = true
+            }
+        }
+
+        setHasLoadedInitialData(false)
+
+        ;(async () => {
+            try {
+                await fetchAllData(user.id)
+            } finally {
+                if (!isCancelled) {
+                    setHasLoadedInitialData(true)
+                }
+            }
+        })()
+
+        return () => {
+            isCancelled = true
         }
     }, [user?.id, fetchAllData])
+
+    useEffect(() => {
+        if (!showRolloverModal || !currentMonthRolloverPrompt) return
+        setRolloverSavingsAmount(Number(currentMonthRolloverPrompt.suggestedAmount || 0).toFixed(2))
+        setRolloverSavingsError('')
+    }, [showRolloverModal, currentMonthRolloverPrompt])
+
+    useEffect(() => {
+        if (!user?.id || !hasLoadedInitialData) return
+        void ensureCurrentMonthWeeklyCarryover({ userId: user.id })
+    }, [user?.id, hasLoadedInitialData, ensureCurrentMonthWeeklyCarryover])
 
     const { month, year } = getCurrentMonth()
 
@@ -62,11 +119,68 @@ export function Dashboard() {
 
     const handleRolloverAcknowledge = () => {
         acknowledgeRollover()
+        setRolloverSavingsError('')
+        setIsProcessingSavingsRollover(false)
         setShowRolloverModal(false)
+    }
+
+    const handleSkipSavingsRollover = async () => {
+        if (!currentMonthRolloverPrompt) {
+            handleRolloverAcknowledge()
+            return
+        }
+
+        setIsProcessingSavingsRollover(true)
+        const result = await skipCurrentMonthRollover()
+        setIsProcessingSavingsRollover(false)
+
+        if (!result.success) {
+            alert(`Failed to skip savings rollover: ${result.error}`)
+            return
+        }
+
+        handleRolloverAcknowledge()
+    }
+
+    const handleTransferSavingsRollover = async () => {
+        if (!currentMonthRolloverPrompt) {
+            handleRolloverAcknowledge()
+            return
+        }
+
+        const amount = Number(rolloverSavingsAmount)
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setRolloverSavingsError('Transfer amount must be greater than 0.')
+            return
+        }
+
+        setRolloverSavingsError('')
+        setIsProcessingSavingsRollover(true)
+        const result = await acceptCurrentMonthRollover({ amount })
+        setIsProcessingSavingsRollover(false)
+
+        if (!result.success) {
+            const detail = result.warning ? `${result.error}\n${result.warning}` : result.error
+            alert(`Failed to transfer leftover to savings: ${detail}`)
+            return
+        }
+
+        handleRolloverAcknowledge()
+    }
+
+    const handleRolloverModalClose = () => {
+        if (!isSavingsRolloverUiReady) return
+
+        if (currentMonthRolloverPrompt) {
+            void handleSkipSavingsRollover()
+            return
+        }
+        handleRolloverAcknowledge()
     }
 
     // Get recent transactions (last 5)
     const recentExpenses = currentMonthExpenses.slice(0, 5)
+    const isSavingsRolloverUiReady = isRolloverPromptReady && hasLoadedInitialData
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
@@ -119,7 +233,7 @@ export function Dashboard() {
                 {status === 'under' && totalIncome > 0 && (
                     <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                         <p className="text-sm text-amber-800 dark:text-amber-200">
-                            💡 You have unassigned funds. Allocate them to categories to reach a zero-based budget.
+                            You have unassigned funds. Allocate them to categories to reach a zero-based budget.
                         </p>
                         <button
                             onClick={() => navigate('/categories')}
@@ -133,7 +247,7 @@ export function Dashboard() {
                 {status === 'balanced' && (
                     <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                         <p className="text-sm text-green-800 dark:text-green-200">
-                            ✅ Perfect! Your budget is balanced. Every dollar has a job!
+                            Perfect. Your budget is balanced. Every dollar has a job.
                         </p>
                     </div>
                 )}
@@ -141,7 +255,7 @@ export function Dashboard() {
                 {status === 'over' && (
                     <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                         <p className="text-sm text-red-800 dark:text-red-200">
-                            ⚠️ You've assigned more than your income. Review your categories to fix this.
+                            You have assigned more than your income. Review your categories to fix this.
                         </p>
                     </div>
                 )}
@@ -150,7 +264,7 @@ export function Dashboard() {
                 {weeklyLimitEnabled && isExceeded && totalIncome > 0 && (
                     <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                         <p className="text-sm text-red-800 dark:text-red-200">
-                            🚨 You've exceeded your weekly spending limit. Consider pausing non-essential purchases.
+                            You have exceeded your weekly spending limit. Consider pausing non-essential purchases.
                         </p>
                     </div>
                 )}
@@ -171,7 +285,7 @@ export function Dashboard() {
 
                     {recentExpenses.length > 0 ? (
                         <div className="space-y-2">
-                            {recentExpenses.map(expense => (
+                            {recentExpenses.map((expense) => (
                                 <ExpenseCard
                                     key={expense.id}
                                     expense={expense}
@@ -228,19 +342,70 @@ export function Dashboard() {
             {/* Rollover Modal */}
             <Modal
                 isOpen={showRolloverModal}
-                onClose={handleRolloverAcknowledge}
-                title="🎉 New Month!"
+                onClose={handleRolloverModalClose}
+                title="New Month"
+                showCloseButton={isSavingsRolloverUiReady}
             >
                 <div className="space-y-4">
                     <p className="text-slate-600 dark:text-slate-400">
-                        Welcome to {getMonthName(month)}! Your budget has been reset for the new month.
+                        Welcome to {getMonthName(month)}. Your budget has been reset for the new month.
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-500">
                         Recurring income and expenses from last month are ready to be added.
                     </p>
-                    <Button onClick={handleRolloverAcknowledge} className="w-full">
-                        Got it!
-                    </Button>
+
+                    {!isSavingsRolloverUiReady ? (
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
+                            <p className="text-sm text-slate-600 dark:text-slate-300">
+                                Checking last month for leftover cash to transfer to savings...
+                            </p>
+                        </div>
+                    ) : currentMonthRolloverPrompt ? (
+                        <div className="space-y-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-900/10 p-4">
+                            <div>
+                                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-200">
+                                    Leftover cash found from last month
+                                </p>
+                                <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                    Income {formatCurrency(currentMonthRolloverPrompt.incomeTotal, currencyPreference)} - Expenses {formatCurrency(currentMonthRolloverPrompt.expenseTotal, currencyPreference)} = Suggested transfer {formatCurrency(currentMonthRolloverPrompt.suggestedAmount, currencyPreference)}
+                                </p>
+                            </div>
+
+                            <Input
+                                label="Transfer to Savings"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={rolloverSavingsAmount}
+                                onChange={(e) => {
+                                    setRolloverSavingsAmount(e.target.value)
+                                    if (rolloverSavingsError) setRolloverSavingsError('')
+                                }}
+                                error={rolloverSavingsError}
+                                required
+                            />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleSkipSavingsRollover}
+                                    disabled={isProcessingSavingsRollover}
+                                >
+                                    Skip
+                                </Button>
+                                <Button
+                                    onClick={handleTransferSavingsRollover}
+                                    loading={isProcessingSavingsRollover}
+                                >
+                                    Transfer
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <Button onClick={handleRolloverAcknowledge} className="w-full">
+                            Got it
+                        </Button>
+                    )}
                 </div>
             </Modal>
         </div>

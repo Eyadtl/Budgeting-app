@@ -8,7 +8,11 @@ import { useExpenses } from './useExpenses'
  * Returns the zero-based budget status
  */
 export function useBudgetSummary() {
-    const { totalMonthlyIncome } = useIncome()
+    const {
+        grossMonthlyIncome,
+        effectiveMonthlyIncome,
+        carryoverDeduction
+    } = useIncome()
     const { totalBudgeted } = useCategories()
     const { currentMonthExpenses } = useExpenses()
 
@@ -31,25 +35,27 @@ export function useBudgetSummary() {
 
     // Calculate remaining to assign
     const remaining = useMemo(() => {
-        return totalMonthlyIncome - totalAssigned
-    }, [totalMonthlyIncome, totalAssigned])
+        return effectiveMonthlyIncome - totalAssigned
+    }, [effectiveMonthlyIncome, totalAssigned])
 
     // Budget status
     const status = useMemo(() => {
         if (remaining < 0) return 'over'
-        if (remaining === 0 && totalMonthlyIncome > 0) return 'balanced'
+        if (remaining === 0 && effectiveMonthlyIncome > 0) return 'balanced'
         if (remaining > 0) return 'under'
         return 'empty'
-    }, [remaining, totalMonthlyIncome])
+    }, [remaining, effectiveMonthlyIncome])
 
     // Percentage assigned
     const percentAssigned = useMemo(() => {
-        if (totalMonthlyIncome === 0) return 0
-        return Math.round((totalAssigned / totalMonthlyIncome) * 100)
-    }, [totalAssigned, totalMonthlyIncome])
+        if (effectiveMonthlyIncome === 0) return 0
+        return Math.round((totalAssigned / effectiveMonthlyIncome) * 100)
+    }, [totalAssigned, effectiveMonthlyIncome])
 
     return {
-        totalIncome: totalMonthlyIncome,
+        totalIncome: effectiveMonthlyIncome,
+        grossIncome: grossMonthlyIncome,
+        carryoverDeduction,
         totalAssigned,
         remaining,
         status,

@@ -1,5 +1,14 @@
 import { create } from 'zustand'
 import { supabase } from '../services/supabase/supabase'
+import { buildCurrentMonthWeeklyCarryover } from '../utils/weeklyCarryover'
+
+const isMissingTableError = (error, tableName) => (
+    error?.message?.includes(tableName)
+    && (
+        error.message?.includes('does not exist')
+        || error.message?.includes('schema cache')
+    )
+)
 
 /**
  * @typedef {Object} Profile
@@ -58,6 +67,39 @@ import { supabase } from '../services/supabase/supabase'
  * @property {number} interest_rate
  */
 
+/**
+ * @typedef {Object} SavingsTransaction
+ * @property {string} id
+ * @property {string} user_id
+ * @property {'deposit'|'withdraw'|'adjustment'|'rollover_transfer'} type
+ * @property {number} signed_amount
+ * @property {string|null} note
+ * @property {string} date
+ */
+
+/**
+ * @typedef {Object} MonthlySavingsRollover
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} rollover_month
+ * @property {string} source_month
+ * @property {number} suggested_amount
+ * @property {number|null} accepted_amount
+ * @property {'pending'|'accepted'|'skipped'} status
+ */
+
+/**
+ * @typedef {Object} WeeklyLimitCarryover
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} rollover_month
+ * @property {string} source_month
+ * @property {number} carryover_amount
+ * @property {number} remaining_amount
+ * @property {'pending'|'applied'|'settled'} status
+ * @property {string|null} processed_at
+ */
+
 export const useBudgetStore = create((set, get) => ({
     // State
     profile: null,
@@ -66,6 +108,12 @@ export const useBudgetStore = create((set, get) => ({
     categoryBudgets: [],
     expenses: [],
     debts: [],
+    savingsTransactions: [],
+    monthlySavingsRollovers: [],
+    weeklyLimitCarryovers: [],
+    savingsTransactionsLoaded: false,
+    monthlySavingsRolloversLoaded: false,
+    weeklyLimitCarryoversLoaded: false,
     isLoading: false,
     error: null,
 
@@ -510,12 +558,297 @@ export const useBudgetStore = create((set, get) => ({
         }
     },
 
+    // Savings actions
+    fetchSavingsTransactions: async (userId) => {
+        set({ isLoading: true, error: null, savingsTransactionsLoaded: false })
+        try {
+            const { data, error } = await supabase
+                .from('savings_transactions')
+                .select('*')
+                .eq('user_id', userId)
+                .order('date', { ascending: false })
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+
+            set({
+                savingsTransactions: data || [],
+                savingsTransactionsLoaded: true,
+                isLoading: false
+            })
+        } catch (error) {
+            if (isMissingTableError(error, 'savings_transactions')) {
+                set({
+                    savingsTransactions: [],
+                    savingsTransactionsLoaded: true,
+                    isLoading: false
+                })
+                return
+            }
+
+            set({
+                error: error.message,
+                savingsTransactionsLoaded: true,
+                isLoading: false
+            })
+        }
+    },
+
+    addSavingsTransaction: async (transaction) => {
+        try {
+            const { data, error } = await supabase
+                .from('savings_transactions')
+                .insert(transaction)
+                .select()
+                .single()
+
+            if (error) throw error
+
+            set((state) => ({
+                savingsTransactions: [data, ...state.savingsTransactions]
+            }))
+
+            return { success: true, data }
+        } catch (error) {
+            if (isMissingTableError(error, 'savings_transactions')) {
+                return {
+                    success: false,
+                    error: "Savings is not available because the database hasn't been updated yet."
+                }
+            }
+
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
+    deleteSavingsTransaction: async (id) => {
+        try {
+            const { error } = await supabase
+                .from('savings_transactions')
+                .delete()
+                .eq('id', id)
+
+            if (error) throw error
+
+            set((state) => ({
+                savingsTransactions: state.savingsTransactions.filter((tx) => tx.id !== id)
+            }))
+
+            return { success: true }
+        } catch (error) {
+            if (isMissingTableError(error, 'savings_transactions')) {
+                return {
+                    success: false,
+                    error: "Savings is not available because the database hasn't been updated yet."
+                }
+            }
+
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
+    fetchMonthlySavingsRollovers: async (userId) => {
+        set({ isLoading: true, error: null, monthlySavingsRolloversLoaded: false })
+        try {
+            const { data, error } = await supabase
+                .from('monthly_savings_rollovers')
+                .select('*')
+                .eq('user_id', userId)
+                .order('rollover_month', { ascending: false })
+
+            if (error) throw error
+
+            set({
+                monthlySavingsRollovers: data || [],
+                monthlySavingsRolloversLoaded: true,
+                isLoading: false
+            })
+        } catch (error) {
+            if (isMissingTableError(error, 'monthly_savings_rollovers')) {
+                set({
+                    monthlySavingsRollovers: [],
+                    monthlySavingsRolloversLoaded: true,
+                    isLoading: false
+                })
+                return
+            }
+
+            set({
+                error: error.message,
+                monthlySavingsRolloversLoaded: true,
+                isLoading: false
+            })
+        }
+    },
+
+    upsertMonthlySavingsRollover: async (row) => {
+        try {
+            const { data, error } = await supabase
+                .from('monthly_savings_rollovers')
+                .upsert(row, { onConflict: 'user_id,rollover_month' })
+                .select()
+                .single()
+
+            if (error) throw error
+
+            set((state) => {
+                const next = state.monthlySavingsRollovers.filter((r) => !(
+                    r.user_id === data.user_id && r.rollover_month === data.rollover_month
+                ))
+
+                return {
+                    monthlySavingsRollovers: [data, ...next]
+                }
+            })
+
+            return { success: true, data }
+        } catch (error) {
+            if (isMissingTableError(error, 'monthly_savings_rollovers')) {
+                return {
+                    success: false,
+                    error: "Savings rollover tracking is not available because the database hasn't been updated yet."
+                }
+            }
+
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
+    fetchWeeklyLimitCarryovers: async (userId) => {
+        set({ isLoading: true, error: null, weeklyLimitCarryoversLoaded: false })
+        try {
+            const { data, error } = await supabase
+                .from('weekly_limit_carryovers')
+                .select('*')
+                .eq('user_id', userId)
+                .order('rollover_month', { ascending: false })
+
+            if (error) throw error
+
+            set({
+                weeklyLimitCarryovers: data || [],
+                weeklyLimitCarryoversLoaded: true,
+                isLoading: false
+            })
+        } catch (error) {
+            if (isMissingTableError(error, 'weekly_limit_carryovers')) {
+                set({
+                    weeklyLimitCarryovers: [],
+                    weeklyLimitCarryoversLoaded: true,
+                    isLoading: false
+                })
+                return
+            }
+
+            set({
+                error: error.message,
+                weeklyLimitCarryoversLoaded: true,
+                isLoading: false
+            })
+        }
+    },
+
+    upsertWeeklyLimitCarryover: async (row) => {
+        try {
+            const { data, error } = await supabase
+                .from('weekly_limit_carryovers')
+                .upsert(row, { onConflict: 'user_id,rollover_month' })
+                .select()
+                .single()
+
+            if (error) throw error
+
+            set((state) => {
+                const next = state.weeklyLimitCarryovers.filter((r) => !(
+                    r.user_id === data.user_id && r.rollover_month === data.rollover_month
+                ))
+
+                return {
+                    weeklyLimitCarryovers: [data, ...next]
+                }
+            })
+
+            return { success: true, data }
+        } catch (error) {
+            if (isMissingTableError(error, 'weekly_limit_carryovers')) {
+                return {
+                    success: false,
+                    error: "Weekly carryover tracking is not available because the database hasn't been updated yet."
+                }
+            }
+
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
+    ensureCurrentMonthWeeklyCarryover: async ({ userId, referenceDate = new Date() }) => {
+        try {
+            if (!userId) {
+                return { success: false, error: 'Not authenticated' }
+            }
+
+            const {
+                fetchWeeklyLimitCarryovers,
+                upsertWeeklyLimitCarryover,
+                weeklyLimitCarryoversLoaded
+            } = get()
+
+            if (!weeklyLimitCarryoversLoaded) {
+                await fetchWeeklyLimitCarryovers(userId)
+            }
+
+            const state = get()
+            const payload = buildCurrentMonthWeeklyCarryover({
+                userId,
+                incomeSources: state.incomeSources,
+                expenses: state.expenses,
+                categories: state.categories,
+                categoryBudgets: state.categoryBudgets,
+                weeklyLimitCarryovers: state.weeklyLimitCarryovers,
+                referenceDate
+            })
+
+            if (!payload.previousMonthUpdate && !payload.currentMonthRow) {
+                return { success: true, data: payload }
+            }
+
+            if (payload.previousMonthUpdate) {
+                const previousResult = await upsertWeeklyLimitCarryover(payload.previousMonthUpdate)
+                if (!previousResult.success) return previousResult
+            }
+
+            if (payload.currentMonthRow) {
+                const currentResult = await upsertWeeklyLimitCarryover(payload.currentMonthRow)
+                if (!currentResult.success) return currentResult
+            }
+
+            return { success: true, data: payload }
+        } catch (error) {
+            set({ error: error.message })
+            return { success: false, error: error.message }
+        }
+    },
+
     // Utility actions
     clearError: () => set({ error: null }),
 
     // Fetch all data for a user
     fetchAllData: async (userId) => {
-        const { fetchProfile, fetchIncomeSources, fetchCategories, fetchCategoryBudgets, fetchExpenses, fetchDebts } = get()
+        const {
+            fetchProfile,
+            fetchIncomeSources,
+            fetchCategories,
+            fetchCategoryBudgets,
+            fetchExpenses,
+            fetchDebts,
+            fetchSavingsTransactions,
+            fetchMonthlySavingsRollovers,
+            fetchWeeklyLimitCarryovers
+        } = get()
         await Promise.all([
             fetchProfile(userId),
             fetchIncomeSources(userId),
@@ -523,6 +856,9 @@ export const useBudgetStore = create((set, get) => ({
             fetchCategoryBudgets(userId),
             fetchExpenses(userId),
             fetchDebts(userId),
+            fetchSavingsTransactions(userId),
+            fetchMonthlySavingsRollovers(userId),
+            fetchWeeklyLimitCarryovers(userId),
         ])
     },
 }))

@@ -1,9 +1,18 @@
 import { useState } from 'react'
-import { Plus, Receipt, Filter } from 'lucide-react'
-import { BottomNav, ExpenseCard, Modal, Card, CardContent, Select } from '../../components'
+import { Plus, Receipt, Download, FileSpreadsheet } from 'lucide-react'
+import { BottomNav, ExpenseCard, Modal, Card, CardContent, Select, Button } from '../../components'
 import { ExpenseForm } from '../../components/forms'
 import { useProfile, useCategories, useExpenses } from '../../hooks'
-import { formatCurrency, getMonthName, getCurrentMonth, filterByMonth, parseDate } from '../../utils'
+import {
+    formatCurrency,
+    getMonthName,
+    getCurrentMonth,
+    filterByMonth,
+    parseDate,
+    exportToCSV,
+    exportToExcel,
+    prepareExpensesForExport
+} from '../../utils'
 
 export function Expenses() {
     const { currencyPreference } = useProfile()
@@ -97,6 +106,27 @@ export function Expenses() {
         ...categories.map(cat => ({ value: cat.id, label: cat.name }))
     ]
 
+    const filteredExpenses = filteredGroups.flatMap(group => group.expenses)
+    const exportFilenameBase = `expenses-${getMonthName(selectedMonthNumber)}-${selectedYearNumber}-${new Date().toISOString().split('T')[0]}`
+
+    const handleExportCSV = () => {
+        if (filteredExpenses.length === 0) return
+        const data = prepareExpensesForExport({
+            expenses: filteredExpenses,
+            categories
+        })
+        exportToCSV(data, exportFilenameBase)
+    }
+
+    const handleExportExcel = async () => {
+        if (filteredExpenses.length === 0) return
+        const data = prepareExpensesForExport({
+            expenses: filteredExpenses,
+            categories
+        })
+        await exportToExcel(data, exportFilenameBase, 'Expenses')
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
             <div className="max-w-lg mx-auto p-4">
@@ -134,6 +164,28 @@ export function Expenses() {
                         options={yearOptions}
                         placeholder={null}
                     />
+                </div>
+
+                {/* Export Actions */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleExportExcel}
+                        disabled={filteredExpenses.length === 0}
+                    >
+                        <FileSpreadsheet className="w-4 h-4 mr-1.5" />
+                        Export Excel
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleExportCSV}
+                        disabled={filteredExpenses.length === 0}
+                    >
+                        <Download className="w-4 h-4 mr-1.5" />
+                        Export CSV
+                    </Button>
                 </div>
 
                 {/* Total Card */}

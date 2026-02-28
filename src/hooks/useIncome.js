@@ -1,7 +1,13 @@
 import { useEffect, useMemo } from 'react'
 import { useBudgetStore } from '../stores'
 import { useAuth } from './useAuth'
-import { isCurrentMonth } from '../utils'
+import {
+    isCurrentMonth,
+    getCurrentMonth,
+    getMonthStartString,
+    getCarryoverDeductionForMonth,
+    calculateEffectiveMonthlyIncome
+} from '../utils'
 
 /**
  * Custom hook for income management
@@ -10,6 +16,7 @@ export function useIncome() {
     const { user } = useAuth()
     const {
         incomeSources,
+        weeklyLimitCarryovers,
         isLoading,
         error,
         fetchIncomeSources,
@@ -32,6 +39,20 @@ export function useIncome() {
     const totalMonthlyIncome = useMemo(() => {
         return currentMonthIncome.reduce((sum, income) => sum + Number(income.amount), 0)
     }, [currentMonthIncome])
+
+    const { month: currentMonth, year: currentYear } = getCurrentMonth()
+    const currentMonthStart = useMemo(
+        () => getMonthStartString(currentYear, currentMonth),
+        [currentYear, currentMonth]
+    )
+
+    const carryoverDeduction = useMemo(() => {
+        return getCarryoverDeductionForMonth(weeklyLimitCarryovers, currentMonthStart)
+    }, [weeklyLimitCarryovers, currentMonthStart])
+
+    const effectiveMonthlyIncome = useMemo(() => {
+        return calculateEffectiveMonthlyIncome(totalMonthlyIncome, carryoverDeduction)
+    }, [totalMonthlyIncome, carryoverDeduction])
 
     // Filter by frequency
     const recurringIncome = useMemo(() => {
@@ -56,6 +77,9 @@ export function useIncome() {
         currentMonthIncome,
         recurringIncome,
         totalMonthlyIncome,
+        grossMonthlyIncome: totalMonthlyIncome,
+        carryoverDeduction,
+        effectiveMonthlyIncome,
         isLoading,
         error,
         addIncome: add,

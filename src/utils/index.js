@@ -131,7 +131,7 @@ export function calculateTotal(items) {
 }
 
 // ============================================
-// CSV Export Utilities
+// Export Utilities
 // ============================================
 
 /**
@@ -147,6 +147,33 @@ export function exportToCSV(data, filename = 'export') {
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', `${filename}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+}
+
+/**
+ * Export data to an Excel workbook
+ * @param {Array} data - Array of objects to export
+ * @param {string} filename - Name of the file (without extension)
+ * @param {string} sheetName - Worksheet name
+ */
+export async function exportToExcel(data, filename = 'export', sheetName = 'Sheet1') {
+    const XLSX = await import('xlsx')
+    const worksheet = XLSX.utils.json_to_sheet(data)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob(
+        [excelBuffer],
+        { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' }
+    )
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `${filename}.xlsx`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -187,8 +214,32 @@ export function prepareTransactionsForExport({ income = [], expenses = [], categ
     )
 }
 
+/**
+ * Prepare expense data for export
+ * @param {Object} data - { expenses, categories }
+ * @returns {Array}
+ */
+export function prepareExpensesForExport({ expenses = [], categories = [] }) {
+    const getCategoryName = (categoryId, expenseCategory) => {
+        if (expenseCategory?.name) return expenseCategory.name
+        const cat = categories.find(c => c.id === categoryId)
+        return cat?.name || 'Uncategorized'
+    }
+
+    return [...expenses]
+        .sort((a, b) => parseDate(b.date) - parseDate(a.date))
+        .map(item => ({
+            Date: formatDate(item.date),
+            Name: item.name,
+            Category: getCategoryName(item.category_id, item.categories),
+            Amount: Number(item.amount),
+            Recurring: item.is_recurring ? 'Yes' : 'No'
+        }))
+}
+
 // ============================================
 // Weekly Limit Utilities
 // ============================================
 export * from './weeklyLimit'
+export * from './weeklyCarryover'
 

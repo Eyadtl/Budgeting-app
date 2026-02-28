@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores'
-import { Dashboard, Login, Income, Categories, Expenses, Profile, Debts } from './pages'
+import { Dashboard, Login, Income, Categories, Expenses, Profile, Debts, Savings } from './pages'
 import { Loader2 } from 'lucide-react'
 
 function ProtectedRoute({ children }) {
@@ -98,6 +98,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/savings"
+          element={
+            <ProtectedRoute>
+              <Savings />
             </ProtectedRoute>
           }
         />

@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, DollarSign, Tags, Receipt, User } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Tags, Receipt, PiggyBank, User } from 'lucide-react'
 
 const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/income', label: 'Income', icon: DollarSign },
     { path: '/categories', label: 'Categories', icon: Tags },
     { path: '/expenses', label: 'Expenses', icon: Receipt },
+    { path: '/savings', label: 'Savings', icon: PiggyBank },
     { path: '/profile', label: 'Profile', icon: User },
 ]
 

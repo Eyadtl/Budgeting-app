@@ -19,10 +19,11 @@ export function getStartOfWeek(referenceDate = new Date()) {
 
 /**
  * Calculate days remaining in the current week (Mon-Sun)
+ * @param {Date} [referenceDate]
  * @returns {number} Days remaining in week (1-7)
  */
-export function getDaysRemainingInWeek() {
-    const now = new Date()
+export function getDaysRemainingInWeek(referenceDate = new Date()) {
+    const now = referenceDate
     const dayOfWeek = now.getDay() // 0 = Sunday
     // Convert to Mon=1, Sun=7 format
     const mondayBased = dayOfWeek === 0 ? 7 : dayOfWeek
@@ -32,10 +33,11 @@ export function getDaysRemainingInWeek() {
 /**
  * Calculate remaining weeks in the current month from this week boundary.
  * This stays stable during the week and updates when a new week starts.
+ * @param {Date} [referenceDate]
  * @returns {number} Weeks remaining in current month (minimum 1)
  */
-export function getWeeksRemainingInCurrentMonth() {
-    const now = new Date()
+export function getWeeksRemainingInCurrentMonth(referenceDate = new Date()) {
+    const now = referenceDate
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
@@ -52,22 +54,24 @@ export function getWeeksRemainingInCurrentMonth() {
  * Calculate the weekly spending limit.
  * @param {number} startingPool - Current monthly pool available for weekly planning
  * @param {number} poolAdjustments - Expense adjustments that should reduce weekly pool
+ * @param {Date} [referenceDate]
  * @returns {number} Weekly limit amount
  */
-export function calculateWeeklyLimit(startingPool, poolAdjustments = 0) {
+export function calculateWeeklyLimit(startingPool, poolAdjustments = 0, referenceDate = new Date()) {
     const remaining = startingPool - poolAdjustments
     if (remaining <= 0) return 0
-    const weeksRemaining = getWeeksRemainingInCurrentMonth()
+    const weeksRemaining = getWeeksRemainingInCurrentMonth(referenceDate)
     return remaining / weeksRemaining
 }
 
 /**
  * Calculate pro-rated limit for current week
  * @param {number} weeklyLimit - Full weekly limit
+ * @param {Date} [referenceDate]
  * @returns {number} Pro-rated amount for remaining days
  */
-export function calculateProRatedWeeklyLimit(weeklyLimit) {
-    const daysRemaining = getDaysRemainingInWeek()
+export function calculateProRatedWeeklyLimit(weeklyLimit, referenceDate = new Date()) {
+    const daysRemaining = getDaysRemainingInWeek(referenceDate)
     return (weeklyLimit / 7) * daysRemaining
 }
 

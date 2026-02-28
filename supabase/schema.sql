@@ -96,6 +96,51 @@ CREATE TABLE debts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Savings Transactions table
+-- Tracks savings deposits, withdrawals, adjustments, and month rollover transfers
+CREATE TABLE savings_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('deposit', 'withdraw', 'adjustment', 'rollover_transfer')),
+    signed_amount NUMERIC(12, 2) NOT NULL CHECK (signed_amount <> 0),
+    note TEXT,
+    date DATE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Monthly Savings Rollovers table
+-- Tracks whether a month-start leftover transfer to savings was accepted or skipped
+CREATE TABLE monthly_savings_rollovers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    rollover_month DATE NOT NULL,
+    source_month DATE NOT NULL,
+    suggested_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (suggested_amount >= 0),
+    accepted_amount NUMERIC(12, 2) CHECK (accepted_amount IS NULL OR accepted_amount >= 0),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'skipped')),
+    processed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, rollover_month)
+);
+
+-- Weekly Limit Carryovers table
+-- Tracks last-week weekly overspend debt that rolls into the next month
+CREATE TABLE weekly_limit_carryovers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    rollover_month DATE NOT NULL,
+    source_month DATE NOT NULL,
+    carryover_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (carryover_amount >= 0),
+    remaining_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (remaining_amount >= 0),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'applied', 'settled')),
+    processed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, rollover_month)
+);
+
 -- ============================================
 -- INDEXES
 -- ============================================
@@ -112,6 +157,12 @@ CREATE INDEX idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX idx_expenses_date ON expenses(date);
 CREATE INDEX idx_expenses_category_id ON expenses(category_id);
 CREATE INDEX idx_debts_user_id ON debts(user_id);
+CREATE INDEX idx_savings_transactions_user_id ON savings_transactions(user_id);
+CREATE INDEX idx_savings_transactions_date ON savings_transactions(date);
+CREATE INDEX idx_monthly_savings_rollovers_user_id ON monthly_savings_rollovers(user_id);
+CREATE INDEX idx_monthly_savings_rollovers_rollover_month ON monthly_savings_rollovers(rollover_month);
+CREATE INDEX idx_weekly_limit_carryovers_user_id ON weekly_limit_carryovers(user_id);
+CREATE INDEX idx_weekly_limit_carryovers_rollover_month ON weekly_limit_carryovers(rollover_month);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -124,6 +175,9 @@ ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE category_budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE debts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE savings_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE monthly_savings_rollovers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weekly_limit_carryovers ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users can view their own profile"
@@ -233,6 +287,60 @@ CREATE POLICY "Users can delete their own debts"
     ON debts FOR DELETE
     USING (auth.uid() = user_id);
 
+-- Savings Transactions policies
+CREATE POLICY "Users can view their own savings transactions"
+    ON savings_transactions FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own savings transactions"
+    ON savings_transactions FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own savings transactions"
+    ON savings_transactions FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own savings transactions"
+    ON savings_transactions FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Monthly Savings Rollovers policies
+CREATE POLICY "Users can view their own monthly savings rollovers"
+    ON monthly_savings_rollovers FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own monthly savings rollovers"
+    ON monthly_savings_rollovers FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own monthly savings rollovers"
+    ON monthly_savings_rollovers FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own monthly savings rollovers"
+    ON monthly_savings_rollovers FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Weekly Limit Carryovers policies
+CREATE POLICY "Users can view their own weekly limit carryovers"
+    ON weekly_limit_carryovers FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own weekly limit carryovers"
+    ON weekly_limit_carryovers FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own weekly limit carryovers"
+    ON weekly_limit_carryovers FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own weekly limit carryovers"
+    ON weekly_limit_carryovers FOR DELETE
+    USING (auth.uid() = user_id);
+
 -- ============================================
 -- TRIGGERS FOR updated_at
 -- ============================================
@@ -274,6 +382,21 @@ CREATE TRIGGER update_expenses_updated_at
 
 CREATE TRIGGER update_debts_updated_at
     BEFORE UPDATE ON debts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_savings_transactions_updated_at
+    BEFORE UPDATE ON savings_transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_monthly_savings_rollovers_updated_at
+    BEFORE UPDATE ON monthly_savings_rollovers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_weekly_limit_carryovers_updated_at
+    BEFORE UPDATE ON weekly_limit_carryovers
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
