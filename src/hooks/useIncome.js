@@ -17,9 +17,11 @@ export function useIncome() {
     const {
         incomeSources,
         weeklyLimitCarryovers,
+        weeklyLimitCarryoversLoaded,
         isLoading,
         error,
         fetchIncomeSources,
+        fetchWeeklyLimitCarryovers,
         addIncomeSource,
         deleteIncomeSource
     } = useBudgetStore()
@@ -29,6 +31,12 @@ export function useIncome() {
             fetchIncomeSources(user.id)
         }
     }, [user?.id, incomeSources.length, fetchIncomeSources])
+
+    useEffect(() => {
+        if (user?.id && !weeklyLimitCarryoversLoaded) {
+            fetchWeeklyLimitCarryovers(user.id)
+        }
+    }, [user?.id, weeklyLimitCarryoversLoaded, fetchWeeklyLimitCarryovers])
 
     // Filter current month income
     const currentMonthIncome = useMemo(() => {

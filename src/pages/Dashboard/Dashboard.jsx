@@ -27,7 +27,7 @@ export function Dashboard() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const { currencyPreference } = useProfile()
-    const { totalIncome, totalAssigned, status } = useBudgetSummary()
+    const { totalIncome, totalAssigned, carryoverDeduction, status } = useBudgetSummary()
     const { currentMonthIncome, addIncome, isLoading: incomeLoading } = useIncome()
     const { categories } = useCategories()
     const { currentMonthExpenses, addExpense, deleteExpense, isLoading: expensesLoading } = useExpenses()
@@ -45,6 +45,7 @@ export function Dashboard() {
     const [showRolloverModal, setShowRolloverModal] = useState(() => checkMonthRollover().isNewMonth)
     const [rolloverSavingsAmount, setRolloverSavingsAmount] = useState('')
     const [rolloverSavingsError, setRolloverSavingsError] = useState('')
+    const [weeklyCarryoverWarning, setWeeklyCarryoverWarning] = useState('')
     const [isProcessingSavingsRollover, setIsProcessingSavingsRollover] = useState(false)
     const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false)
 
@@ -84,7 +85,30 @@ export function Dashboard() {
 
     useEffect(() => {
         if (!user?.id || !hasLoadedInitialData) return
-        void ensureCurrentMonthWeeklyCarryover({ userId: user.id })
+        let isCancelled = false
+
+        ;(async () => {
+            const result = await ensureCurrentMonthWeeklyCarryover({ userId: user.id })
+            if (isCancelled) return
+
+            if (result.success) {
+                setWeeklyCarryoverWarning('')
+                return
+            }
+
+            if (result.error?.includes("database hasn't been updated")) {
+                setWeeklyCarryoverWarning(
+                    "Weekly overspend carryover can't be applied yet. Run migration 'supabase/migrations/20260228_add_weekly_limit_carryovers.sql'."
+                )
+                return
+            }
+
+            setWeeklyCarryoverWarning(`Weekly overspend carryover update failed: ${result.error}`)
+        })()
+
+        return () => {
+            isCancelled = true
+        }
     }, [user?.id, hasLoadedInitialData, ensureCurrentMonthWeeklyCarryover])
 
     const { month, year } = getCurrentMonth()
@@ -208,8 +232,17 @@ export function Dashboard() {
                 <HeaderStats
                     totalIncome={totalIncome}
                     totalAssigned={totalAssigned}
+                    carryoverDeduction={carryoverDeduction}
                     currencyPreference={currencyPreference}
                 />
+
+                {weeklyCarryoverWarning && (
+                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                            {weeklyCarryoverWarning}
+                        </p>
+                    </div>
+                )}
 
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 gap-3 mt-6">

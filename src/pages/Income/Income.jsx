@@ -10,6 +10,8 @@ export function Income() {
     const {
         currentMonthIncome,
         totalMonthlyIncome,
+        carryoverDeduction,
+        effectiveMonthlyIncome,
         addIncome,
         deleteIncome,
         isLoading
@@ -57,10 +59,16 @@ export function Income() {
                 {/* Total Card */}
                 <Card className="mb-6 bg-gradient-to-br from-green-500 to-emerald-600 border-0">
                     <CardContent className="text-white">
-                        <p className="text-sm opacity-80">Total Income This Month</p>
+                        <p className="text-sm opacity-80">Available Income This Month</p>
                         <p className="text-3xl font-bold mt-1">
-                            {formatCurrency(totalMonthlyIncome, currencyPreference)}
+                            {formatCurrency(effectiveMonthlyIncome, currencyPreference)}
                         </p>
+                        {carryoverDeduction > 0 && (
+                            <div className="mt-2 text-xs opacity-90 space-y-1">
+                                <p>Gross income: {formatCurrency(totalMonthlyIncome, currencyPreference)}</p>
+                                <p>Weekly over-limit carryover: -{formatCurrency(carryoverDeduction, currencyPreference)}</p>
+                            </div>
+                        )}
                         <p className="text-sm opacity-80 mt-2">
                             {currentMonthIncome.length} source{currentMonthIncome.length !== 1 ? 's' : ''}
                         </p>

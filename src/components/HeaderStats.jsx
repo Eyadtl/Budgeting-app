@@ -3,7 +3,12 @@ import { formatCurrency } from '../utils'
 import { useWeeklyLimit } from '../hooks'
 import { WeeklyLimitBar } from './ui/WeeklyLimitBar'
 
-export function HeaderStats({ totalIncome = 0, totalAssigned = 0, currencyPreference = 'USD' }) {
+export function HeaderStats({
+    totalIncome = 0,
+    totalAssigned = 0,
+    carryoverDeduction = 0,
+    currencyPreference = 'USD'
+}) {
     const remaining = totalIncome - totalAssigned
     const isOverBudget = remaining < 0
     const isBalanced = remaining === 0 && totalIncome > 0
@@ -67,6 +72,12 @@ export function HeaderStats({ totalIncome = 0, totalAssigned = 0, currencyPrefer
                         </p>
                     </div>
                 </div>
+
+                {carryoverDeduction > 0 && (
+                    <p className="text-xs mt-3 opacity-80 text-center">
+                        Includes -{formatCurrency(carryoverDeduction, currencyPreference)} carryover from last month weekly overspend
+                    </p>
+                )}
 
                 {/* Progress indicator */}
                 <div className="mt-4">
