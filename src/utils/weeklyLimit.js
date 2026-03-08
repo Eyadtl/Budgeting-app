@@ -4,30 +4,28 @@
  */
 
 /**
- * Get the start of the current week (Monday at 00:00:00)
+ * Get the start of the current week (Sunday at 00:00:00)
  * @param {Date} [referenceDate]
- * @returns {Date} Monday of the current week
+ * @returns {Date} Sunday of the current week
  */
 export function getStartOfWeek(referenceDate = new Date()) {
     const now = referenceDate
     const day = now.getDay()
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-    const monday = new Date(now.getFullYear(), now.getMonth(), diff)
-    monday.setHours(0, 0, 0, 0)
-    return monday
+    const diff = now.getDate() - day
+    const sunday = new Date(now.getFullYear(), now.getMonth(), diff)
+    sunday.setHours(0, 0, 0, 0)
+    return sunday
 }
 
 /**
- * Calculate days remaining in the current week (Mon-Sun)
+ * Calculate days remaining in the current week (Sun-Sat)
  * @param {Date} [referenceDate]
  * @returns {number} Days remaining in week (1-7)
  */
 export function getDaysRemainingInWeek(referenceDate = new Date()) {
     const now = referenceDate
-    const dayOfWeek = now.getDay() // 0 = Sunday
-    // Convert to Mon=1, Sun=7 format
-    const mondayBased = dayOfWeek === 0 ? 7 : dayOfWeek
-    return 7 - mondayBased + 1
+    const dayOfWeek = now.getDay() // 0 = Sunday, 6 = Saturday
+    return 7 - dayOfWeek
 }
 
 /**

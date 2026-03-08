@@ -77,4 +77,18 @@ describe('useWeeklyLimit expense rules', () => {
         expect(spentThisWeek).toBe(60)
         expect(poolAdjustments).toBe(35)
     })
+
+    it('treats Sunday as the start of week for spent and pool boundaries', () => {
+        const sundayWeekStartMs = new Date(2026, 0, 11).getTime()
+        const sundayExpense = makeExpense({ amount: 40, date: '2026-01-11' })
+        const saturdayExpense = makeExpense({ amount: 25, date: '2026-01-10' })
+
+        const sundayIsCurrentWeek =
+            parseDate(sundayExpense.date).getTime() >= sundayWeekStartMs
+                && isWeeklyTrackedExpense(sundayExpense)
+
+        expect(sundayIsCurrentWeek).toBe(true)
+        expect(shouldReduceWeeklyPool(sundayExpense, sundayWeekStartMs, todayEndMs)).toBe(false)
+        expect(shouldReduceWeeklyPool(saturdayExpense, sundayWeekStartMs, todayEndMs)).toBe(true)
+    })
 })
