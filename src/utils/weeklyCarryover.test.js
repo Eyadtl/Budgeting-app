@@ -27,6 +27,27 @@ describe('weekly carryover utilities', () => {
         expect(result.overrun).toBe(50)
     })
 
+    it('treats a short month-end period as the final carryover window', () => {
+        const result = calculateFinalWeekOverrunForMonth({
+            incomeSources: [{ amount: 700, date: '2026-03-01' }],
+            expenses: [
+                { amount: 140, date: '2026-03-10', name: 'Earlier Expense', category_id: null },
+                { amount: 300, date: '2026-03-30', name: 'Final Period Expense', category_id: null }
+            ],
+            categories: [],
+            categoryBudgets: [],
+            month: 2,
+            year: 2026,
+            carryoverDeduction: 0
+        })
+
+        expect(result.periodStart).toEqual(new Date(2026, 2, 29))
+        expect(result.periodEnd).toEqual(new Date(2026, 2, 31))
+        expect(result.weeklyLimit).toBe(240)
+        expect(result.spentThisWeek).toBe(300)
+        expect(result.overrun).toBe(60)
+    })
+
     it('builds current-month carryover from unresolved prior debt + source month final-week overrun', () => {
         const payload = buildCurrentMonthWeeklyCarryover({
             userId: 'user-1',
@@ -99,4 +120,3 @@ describe('weekly carryover utilities', () => {
         expect(getCarryoverDeductionForMonth(rows, '2026-04-01')).toBe(0)
     })
 })
-

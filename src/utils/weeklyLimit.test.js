@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
     calculateProRatedWeeklyLimit,
-    getDaysRemainingInWeek,
+    calculateWeeklyLimit,
+    getBudgetPeriodsForMonthParts,
+    getCurrentBudgetPeriod,
+    getRemainingBudgetPeriodsInMonth,
     getStartOfWeek,
     getWeeksRemainingInCurrentMonth
 } from './weeklyLimit'
 
 describe('weeklyLimit utilities', () => {
-    it('returns Sunday midnight as start of week', () => {
+    it('keeps the legacy Sunday week-start helper intact', () => {
         const sundayAfternoon = new Date(2026, 0, 11, 15, 30, 45, 123)
         const mondayMorning = new Date(2026, 0, 12, 9, 0, 0, 0)
         const saturdayNight = new Date(2026, 0, 17, 23, 59, 59, 999)
@@ -17,28 +20,86 @@ describe('weeklyLimit utilities', () => {
         expect(getStartOfWeek(saturdayNight).getTime()).toBe(new Date(2026, 0, 11).getTime())
     })
 
-    it('calculates days remaining for a Sun-Sat week', () => {
-        expect(getDaysRemainingInWeek(new Date(2026, 0, 11))).toBe(7) // Sunday
-        expect(getDaysRemainingInWeek(new Date(2026, 0, 12))).toBe(6) // Monday
-        expect(getDaysRemainingInWeek(new Date(2026, 0, 17))).toBe(1) // Saturday
+    it('builds month-bounded periods when a month starts mid-week', () => {
+        const periods = getBudgetPeriodsForMonthParts(2026, 3) // April 2026
+
+        expect(periods).toHaveLength(5)
+        expect(periods[0]).toMatchObject({
+            start: new Date(2026, 3, 1),
+            end: new Date(2026, 3, 4),
+            totalDays: 4
+        })
+        expect(periods[1]).toMatchObject({
+            start: new Date(2026, 3, 5),
+            end: new Date(2026, 3, 11),
+            totalDays: 7
+        })
+        expect(periods[4]).toMatchObject({
+            start: new Date(2026, 3, 26),
+            end: new Date(2026, 3, 30),
+            totalDays: 5
+        })
     })
 
-    it('keeps weeks-remaining stable during the same Sun-Sat week', () => {
-        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 0, 4))).toBe(4) // Sunday
-        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 0, 5))).toBe(4) // Monday
-        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 0, 31))).toBe(1) // Saturday
+    it('returns the current month-bounded period and actual days remaining', () => {
+        const period = getCurrentBudgetPeriod(new Date(2026, 2, 29)) // March 29, 2026
+
+        expect(period).toMatchObject({
+            start: new Date(2026, 2, 29),
+            end: new Date(2026, 2, 31),
+            totalDays: 3,
+            daysRemaining: 3
+        })
     })
 
-    it('clamps effective start to month start when week begins in prior month', () => {
-        const juneFirst = new Date(2026, 5, 1)
-        const weekStart = getStartOfWeek(juneFirst)
+    it('resets on month start and then tracks the next Sunday period', () => {
+        const monthStartPeriod = getCurrentBudgetPeriod(new Date(2026, 3, 1)) // April 1, 2026
+        const sundayPeriod = getCurrentBudgetPeriod(new Date(2026, 3, 5)) // April 5, 2026
 
-        expect(weekStart.getMonth()).toBe(4) // May
-        expect(getWeeksRemainingInCurrentMonth(juneFirst)).toBe(5)
+        expect(monthStartPeriod).toMatchObject({
+            start: new Date(2026, 3, 1),
+            end: new Date(2026, 3, 4),
+            totalDays: 4
+        })
+        expect(sundayPeriod).toMatchObject({
+            start: new Date(2026, 3, 5),
+            end: new Date(2026, 3, 11),
+            totalDays: 7
+        })
     })
 
-    it('pro-rates weekly limits by remaining Sun-Sat days', () => {
-        expect(calculateProRatedWeeklyLimit(700, new Date(2026, 0, 11))).toBe(700) // Sunday
-        expect(calculateProRatedWeeklyLimit(700, new Date(2026, 0, 17))).toBe(100) // Saturday
+    it('counts remaining budget periods in the month', () => {
+        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 3, 1))).toBe(5)
+        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 3, 5))).toBe(4)
+        expect(getWeeksRemainingInCurrentMonth(new Date(2026, 2, 29))).toBe(1)
+    })
+
+    it('uses actual period length when calculating the current limit', () => {
+        const marchTailLimit = calculateWeeklyLimit(120, 0, new Date(2026, 2, 29))
+        const aprilStartLimit = calculateWeeklyLimit(700, 0, new Date(2026, 3, 1))
+        const aprilFirstSundayLimit = calculateWeeklyLimit(700, 0, new Date(2026, 3, 5))
+
+        expect(marchTailLimit).toBeCloseTo(120 * (3 / 7), 5)
+        expect(aprilStartLimit).toBeCloseTo((700 / 5) * (4 / 7), 5)
+        expect(aprilFirstSundayLimit).toBeCloseTo(700 / 4, 5)
+    })
+
+    it('pro-rates remaining days inside the current bounded period', () => {
+        const fullPeriodLimit = 140
+
+        expect(calculateProRatedWeeklyLimit(fullPeriodLimit, new Date(2026, 3, 1))).toBe(140)
+        expect(calculateProRatedWeeklyLimit(fullPeriodLimit, new Date(2026, 3, 3))).toBe(70)
+        expect(calculateProRatedWeeklyLimit(fullPeriodLimit, new Date(2026, 2, 31))).toBeCloseTo(140 / 3, 5)
+    })
+
+    it('returns the remaining month-bounded periods from the active period onward', () => {
+        const periods = getRemainingBudgetPeriodsInMonth(new Date(2026, 3, 5))
+
+        expect(periods).toHaveLength(4)
+        expect(periods[0]).toMatchObject({
+            start: new Date(2026, 3, 5),
+            end: new Date(2026, 3, 11),
+            totalDays: 7
+        })
     })
 })

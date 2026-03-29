@@ -1,4 +1,4 @@
-import { calculateWeeklyLimit, getStartOfWeek } from './weeklyLimit'
+import { calculateWeeklyLimit, getBudgetPeriodsForMonthParts } from './weeklyLimit'
 
 export const WEEKLY_LIMIT_CARRYOVER_STATUSES = {
     pending: 'pending',
@@ -189,7 +189,9 @@ export function calculateFinalWeekOverrunForMonth({
     const startingPool = Math.max(0, remainingAfterAssigned)
 
     const monthEnd = getMonthEnd(year, month)
-    const weekStartMs = getStartOfWeek(monthEnd).getTime()
+    const finalPeriod = getBudgetPeriodsForMonthParts(year, month).slice(-1)[0]
+    const periodStartMs = finalPeriod.start.getTime()
+    const periodEndMs = finalPeriod.end.getTime()
     const monthEndForRange = new Date(monthEnd)
     monthEndForRange.setHours(23, 59, 59, 999)
     const monthEndMs = monthEndForRange.getTime()
@@ -198,14 +200,16 @@ export function calculateFinalWeekOverrunForMonth({
         monthExpenses
             .filter((expense) => {
                 const expenseDateMs = parseDateInput(expense.date).getTime()
-                return expenseDateMs >= weekStartMs && isWeeklyTrackedExpense(expense)
+                return expenseDateMs >= periodStartMs
+                    && expenseDateMs <= periodEndMs
+                    && isWeeklyTrackedExpense(expense)
             })
             .reduce((sum, expense) => sum + toAmount(expense.amount), 0)
     )
 
     const paidImpactForWeeklyPool = roundCurrency(
         monthExpenses
-            .filter((expense) => shouldReduceWeeklyPool(expense, weekStartMs, monthEndMs))
+            .filter((expense) => shouldReduceWeeklyPool(expense, periodStartMs, monthEndMs))
             .reduce((sum, expense) => sum + toAmount(expense.amount), 0)
     )
 
@@ -214,7 +218,9 @@ export function calculateFinalWeekOverrunForMonth({
     )
 
     return {
-        weekStart: new Date(weekStartMs),
+        weekStart: finalPeriod.start,
+        periodStart: finalPeriod.start,
+        periodEnd: finalPeriod.end,
         monthEnd,
         monthIncome,
         effectiveIncome,
@@ -303,4 +309,3 @@ export function buildCurrentMonthWeeklyCarryover({
         currentMonthRow
     }
 }
-

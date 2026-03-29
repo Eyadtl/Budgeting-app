@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { isWeeklyTrackedExpense, shouldReduceWeeklyPool } from './useWeeklyLimit'
 import { parseDate } from '../utils'
 
-const weekStartMs = new Date(2026, 0, 12).getTime()
-const todayEndMs = new Date(2026, 0, 15, 23, 59, 59, 999).getTime()
+const periodStartMs = new Date(2026, 0, 11).getTime()
+const periodEndMs = new Date(2026, 0, 17, 23, 59, 59, 999).getTime()
+const monthEndShortPeriodStartMs = new Date(2026, 2, 29).getTime()
+const monthEndShortPeriodEndMs = new Date(2026, 2, 31, 23, 59, 59, 999).getTime()
 
 const makeExpense = (overrides = {}) => ({
     name: 'Groceries',
@@ -23,20 +25,20 @@ describe('useWeeklyLimit expense rules', () => {
         })
 
         expect(isWeeklyTrackedExpense(assignedExpense)).toBe(false)
-        expect(shouldReduceWeeklyPool(assignedExpense, weekStartMs, todayEndMs)).toBe(false)
+        expect(shouldReduceWeeklyPool(assignedExpense, periodStartMs, periodEndMs)).toBe(false)
     })
 
-    it('includes uncategorized discretionary expenses in weekly spent only', () => {
-        const weeklyExpense = makeExpense({
+    it('includes uncategorized discretionary expenses in current-period spent only', () => {
+        const trackedExpense = makeExpense({
             name: 'Food',
             amount: 60
         })
 
-        expect(isWeeklyTrackedExpense(weeklyExpense)).toBe(true)
-        expect(shouldReduceWeeklyPool(weeklyExpense, weekStartMs, todayEndMs)).toBe(false)
+        expect(isWeeklyTrackedExpense(trackedExpense)).toBe(true)
+        expect(shouldReduceWeeklyPool(trackedExpense, periodStartMs, periodEndMs)).toBe(false)
     })
 
-    it('keeps excluded uncategorized expenses out of spent but reduces weekly pool', () => {
+    it('keeps excluded uncategorized expenses out of spent but reduces the pool', () => {
         const excludedExpense = makeExpense({
             name: 'Transfer',
             amount: 30,
@@ -44,7 +46,7 @@ describe('useWeeklyLimit expense rules', () => {
         })
 
         expect(isWeeklyTrackedExpense(excludedExpense)).toBe(false)
-        expect(shouldReduceWeeklyPool(excludedExpense, weekStartMs, todayEndMs)).toBe(true)
+        expect(shouldReduceWeeklyPool(excludedExpense, periodStartMs, periodEndMs)).toBe(true)
     })
 
     it('keeps debt payments out of weekly tracking and pool adjustments', () => {
@@ -54,41 +56,46 @@ describe('useWeeklyLimit expense rules', () => {
         })
 
         expect(isWeeklyTrackedExpense(debtPayment)).toBe(false)
-        expect(shouldReduceWeeklyPool(debtPayment, weekStartMs, todayEndMs)).toBe(false)
+        expect(shouldReduceWeeklyPool(debtPayment, periodStartMs, periodEndMs)).toBe(false)
     })
 
-    it('applies mixed expenses correctly for spent and pool totals', () => {
+    it('applies mixed expenses correctly for current-period spent and pool totals', () => {
         const expenses = [
             makeExpense({ name: 'Rent', amount: 300, category_id: 'cat-rent' }),
-            makeExpense({ name: 'Groceries', amount: 60 }),
+            makeExpense({ name: 'Groceries', amount: 60, date: '2026-01-12' }),
             makeExpense({ name: 'Subway', amount: 20, date: '2026-01-10' }),
-            makeExpense({ name: 'Transfer', amount: 15, exclude_from_limit: true }),
-            makeExpense({ name: 'Debt Payment: Card', amount: 100 })
+            makeExpense({ name: 'Transfer', amount: 15, exclude_from_limit: true, date: '2026-01-13' }),
+            makeExpense({ name: 'Debt Payment: Card', amount: 100, date: '2026-01-14' })
         ]
 
-        const spentThisWeek = expenses
-            .filter(exp => parseDate(exp.date).getTime() >= weekStartMs && isWeeklyTrackedExpense(exp))
+        const spentThisPeriod = expenses
+            .filter((exp) => {
+                const expenseDateMs = parseDate(exp.date).getTime()
+                return expenseDateMs >= periodStartMs
+                    && expenseDateMs <= periodEndMs
+                    && isWeeklyTrackedExpense(exp)
+            })
             .reduce((sum, exp) => sum + Number(exp.amount), 0)
 
         const poolAdjustments = expenses
-            .filter(exp => shouldReduceWeeklyPool(exp, weekStartMs, todayEndMs))
+            .filter(exp => shouldReduceWeeklyPool(exp, periodStartMs, periodEndMs))
             .reduce((sum, exp) => sum + Number(exp.amount), 0)
 
-        expect(spentThisWeek).toBe(60)
+        expect(spentThisPeriod).toBe(60)
         expect(poolAdjustments).toBe(35)
     })
 
-    it('treats Sunday as the start of week for spent and pool boundaries', () => {
-        const sundayWeekStartMs = new Date(2026, 0, 11).getTime()
-        const sundayExpense = makeExpense({ amount: 40, date: '2026-01-11' })
-        const saturdayExpense = makeExpense({ amount: 25, date: '2026-01-10' })
+    it('treats a short month-end period as its own spending window', () => {
+        const shortPeriodExpense = makeExpense({ amount: 40, date: '2026-03-29' })
+        const priorExpense = makeExpense({ amount: 25, date: '2026-03-28' })
 
-        const sundayIsCurrentWeek =
-            parseDate(sundayExpense.date).getTime() >= sundayWeekStartMs
-                && isWeeklyTrackedExpense(sundayExpense)
+        const isInCurrentPeriod =
+            parseDate(shortPeriodExpense.date).getTime() >= monthEndShortPeriodStartMs
+                && parseDate(shortPeriodExpense.date).getTime() <= monthEndShortPeriodEndMs
+                && isWeeklyTrackedExpense(shortPeriodExpense)
 
-        expect(sundayIsCurrentWeek).toBe(true)
-        expect(shouldReduceWeeklyPool(sundayExpense, sundayWeekStartMs, todayEndMs)).toBe(false)
-        expect(shouldReduceWeeklyPool(saturdayExpense, sundayWeekStartMs, todayEndMs)).toBe(true)
+        expect(isInCurrentPeriod).toBe(true)
+        expect(shouldReduceWeeklyPool(shortPeriodExpense, monthEndShortPeriodStartMs, monthEndShortPeriodEndMs)).toBe(false)
+        expect(shouldReduceWeeklyPool(priorExpense, monthEndShortPeriodStartMs, monthEndShortPeriodEndMs)).toBe(true)
     })
 })

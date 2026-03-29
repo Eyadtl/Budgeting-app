@@ -7,8 +7,7 @@ import {
     calculateWeeklyLimit,
     calculateProRatedWeeklyLimit,
     getWeeklySpendingStatus,
-    getDaysRemainingInWeek,
-    getStartOfWeek,
+    getCurrentBudgetPeriod,
     parseDate
 } from '../utils'
 
@@ -34,7 +33,7 @@ export const isWeeklyTrackedExpense = (expense) => {
         && !isCategorizedExpense(expense)
 }
 
-export const shouldReduceWeeklyPool = (expense, weekStartMs, todayEndMs) => {
+export const shouldReduceWeeklyPool = (expense, periodStartMs, todayEndMs) => {
     if (!isPaidExpense(expense)) return false
     if (isDebtPaymentExpense(expense)) return false
     if (isCategorizedExpense(expense)) return false
@@ -43,14 +42,14 @@ export const shouldReduceWeeklyPool = (expense, weekStartMs, todayEndMs) => {
     if (!Number.isFinite(expenseDateMs)) return false
     if (expenseDateMs > todayEndMs) return false
 
-    const isBeforeWeek = expenseDateMs < weekStartMs
-    return isBeforeWeek || isExcludedExpense(expense)
+    const isBeforeCurrentPeriod = expenseDateMs < periodStartMs
+    return isBeforeCurrentPeriod || isExcludedExpense(expense)
 }
 
 /**
  * Custom hook for weekly spending limit calculations
- * Weekly limit updates each week from remaining monthly money.
- * Current-week spending tracks only uncategorized discretionary expenses.
+ * Weekly limit updates on each month-bounded budget period.
+ * Current-period spending tracks only uncategorized discretionary expenses.
  * Categorized assigned expenses and debt payments are excluded from weekly math.
  */
 export function useWeeklyLimit() {
@@ -62,31 +61,36 @@ export function useWeeklyLimit() {
     // Check if feature is enabled (default to true)
     const isEnabled = profile?.weekly_limit_enabled ?? true
 
-    const weekStartMs = getStartOfWeek().getTime()
+    const currentPeriod = getCurrentBudgetPeriod()
+    const periodStartMs = currentPeriod.start.getTime()
+    const periodEndMs = currentPeriod.end.getTime()
     const today = new Date()
     today.setHours(23, 59, 59, 999)
     const todayEndMs = today.getTime()
+    const currentPeriodEndMs = Math.min(periodEndMs, todayEndMs)
 
-    // Calculate current week's expenses
-    const currentWeekExpenses = useMemo(() => {
+    // Calculate current period's expenses
+    const currentPeriodExpenses = useMemo(() => {
         return currentMonthExpenses.filter(expense => {
             const expenseDateMs = parseDate(expense.date).getTime()
-            return expenseDateMs >= weekStartMs && isWeeklyTrackedExpense(expense)
+            return expenseDateMs >= periodStartMs
+                && expenseDateMs <= currentPeriodEndMs
+                && isWeeklyTrackedExpense(expense)
         })
-    }, [currentMonthExpenses, weekStartMs])
+    }, [currentMonthExpenses, periodStartMs, currentPeriodEndMs])
 
     const spentThisWeek = useMemo(() => {
-        return currentWeekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
-    }, [currentWeekExpenses])
+        return currentPeriodExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
+    }, [currentPeriodExpenses])
 
     // Reduce weekly pool by:
-    // 1) uncategorized, non-debt expenses already paid before this week (carryover impact), and
-    // 2) uncategorized, non-debt expenses marked excluded in this week.
+    // 1) uncategorized, non-debt expenses already paid before this period, and
+    // 2) uncategorized, non-debt expenses marked excluded on or before today.
     const paidImpactForWeeklyPool = useMemo(() => {
         return currentMonthExpenses
-            .filter(expense => shouldReduceWeeklyPool(expense, weekStartMs, todayEndMs))
+            .filter(expense => shouldReduceWeeklyPool(expense, periodStartMs, todayEndMs))
             .reduce((sum, exp) => sum + Number(exp.amount), 0)
-    }, [currentMonthExpenses, weekStartMs, todayEndMs])
+    }, [currentMonthExpenses, periodStartMs, todayEndMs])
 
     // Calculate limits
     const weeklyLimit = useMemo(() => {
@@ -112,7 +116,7 @@ export function useWeeklyLimit() {
         return Math.min(100, Math.round((spentThisWeek / weeklyLimit) * 100))
     }, [spentThisWeek, weeklyLimit])
 
-    const daysRemaining = getDaysRemainingInWeek()
+    const daysRemaining = currentPeriod.daysRemaining
 
     return {
         isEnabled,
@@ -123,6 +127,10 @@ export function useWeeklyLimit() {
         percentageUsed,
         status,
         daysRemaining,
+        periodDaysRemaining: currentPeriod.daysRemaining,
+        periodTotalDays: currentPeriod.totalDays,
+        periodStart: currentPeriod.start,
+        periodEnd: currentPeriod.end,
         isExceeded: status === 'exceeded',
         isWarning: status === 'warning'
     }
