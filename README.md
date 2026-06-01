@@ -41,6 +41,17 @@ A mobile-first budgeting application built with React (Vite), Tailwind CSS, and 
    - Navigate to SQL Editor
    - Copy and run the contents of `supabase/schema.sql`
 
+### Applying Later Database Changes
+
+When the app adds new database features after the initial setup, run the matching SQL files from `supabase/migrations/` in your Supabase SQL Editor.
+
+Current migrations in this repo:
+
+- `supabase/migrations/20260109_add_exclude_from_limit.sql`
+- `supabase/migrations/20260202_add_category_budgets.sql`
+- `supabase/migrations/20260226_add_savings.sql`
+- `supabase/migrations/20260228_add_weekly_limit_carryovers.sql`
+
 5. Start the development server:
    ```bash
    npm run dev

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { User, LogOut, Settings, CreditCard, DollarSign, ChevronRight, Calendar, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { BottomNav, Button, Card, CardContent, Input, Modal, Select } from '../../components'
-import { useAuth, useProfile } from '../../hooks'
+import { useProfile } from '../../hooks'
+import { useAuth, useUser, UserButton } from '@clerk/react'
 import { useBudgetStore } from '../../stores'
 import { formatCurrency, exportToCSV, prepareTransactionsForExport } from '../../utils'
 
@@ -18,7 +19,8 @@ const currencies = [
 
 export function Profile() {
     const navigate = useNavigate()
-    const { user, logout } = useAuth()
+    const { signOut } = useAuth()
+    const { user } = useUser()
     const { currencyPreference, monthlyIncomeGoal, updateProfile, isLoading } = useProfile()
     const { profile: budgetProfile, incomeSources, expenses, categories } = useBudgetStore()
 
@@ -30,7 +32,7 @@ export function Profile() {
     })
 
     const handleLogout = async () => {
-        await logout()
+        await signOut()
     }
 
     const handleSaveSettings = async () => {
@@ -65,12 +67,12 @@ export function Profile() {
                 <Card className="mb-6">
                     <CardContent>
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                <User className="w-8 h-8 text-white" />
+                            <div className="w-16 h-16 rounded-full flex items-center justify-center">
+                                <UserButton appearance={{ elements: { userButtonAvatarBox: "w-16 h-16" } }} />
                             </div>
                             <div className="flex-1">
                                 <p className="font-semibold text-slate-900 dark:text-white">
-                                    {user?.email || 'User'}
+                                    {user?.primaryEmailAddress?.emailAddress || 'User'}
                                 </p>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
                                     Currency: {currencyPreference}

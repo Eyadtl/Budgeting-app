@@ -1,13 +1,12 @@
-import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './stores'
+import { useAuth } from '@clerk/react'
 import { Dashboard, Login, Income, Categories, Expenses, Profile, Debts, Savings } from './pages'
 import { Loader2 } from 'lucide-react'
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isLoaded, isSignedIn } = useAuth()
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
@@ -15,7 +14,7 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />
   }
 
@@ -23,9 +22,9 @@ function ProtectedRoute({ children }) {
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isLoaded, isSignedIn } = useAuth()
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
@@ -33,7 +32,7 @@ function PublicRoute({ children }) {
     )
   }
 
-  if (isAuthenticated) {
+  if (isSignedIn) {
     return <Navigate to="/" replace />
   }
 
@@ -41,11 +40,6 @@ function PublicRoute({ children }) {
 }
 
 function App() {
-  const { initialize } = useAuthStore()
-
-  useEffect(() => {
-    initialize()
-  }, [initialize])
 
   return (
     <BrowserRouter>

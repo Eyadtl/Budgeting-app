@@ -23,6 +23,9 @@ import {
 } from '../../utils'
 import { checkMonthRollover, acknowledgeRollover } from '../../utils/rollover'
 
+const SAVINGS_MIGRATION_FILE = 'supabase/migrations/20260226_add_savings.sql'
+const WEEKLY_CARRYOVER_MIGRATION_FILE = 'supabase/migrations/20260228_add_weekly_limit_carryovers.sql'
+
 export function Dashboard() {
     const navigate = useNavigate()
     const { user } = useAuth()
@@ -37,7 +40,9 @@ export function Dashboard() {
         currentMonthRolloverPrompt,
         isRolloverPromptReady,
         acceptCurrentMonthRollover,
-        skipCurrentMonthRollover
+        skipCurrentMonthRollover,
+        savingsTransactionsAvailable,
+        monthlySavingsRolloversAvailable
     } = useSavings()
 
     const [showIncomeModal, setShowIncomeModal] = useState(false)
@@ -45,6 +50,7 @@ export function Dashboard() {
     const [showRolloverModal, setShowRolloverModal] = useState(() => checkMonthRollover().isNewMonth)
     const [rolloverSavingsAmount, setRolloverSavingsAmount] = useState('')
     const [rolloverSavingsError, setRolloverSavingsError] = useState('')
+    const [savingsRolloverWarning, setSavingsRolloverWarning] = useState('')
     const [weeklyCarryoverWarning, setWeeklyCarryoverWarning] = useState('')
     const [isProcessingSavingsRollover, setIsProcessingSavingsRollover] = useState(false)
     const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false)
@@ -83,6 +89,24 @@ export function Dashboard() {
         setRolloverSavingsError('')
     }, [showRolloverModal, currentMonthRolloverPrompt])
 
+    const isSavingsMigrationReady = savingsTransactionsAvailable && monthlySavingsRolloversAvailable
+
+    useEffect(() => {
+        if (!showRolloverModal || !currentMonthRolloverPrompt) {
+            setSavingsRolloverWarning('')
+            return
+        }
+
+        if (!isSavingsMigrationReady) {
+            setSavingsRolloverWarning(
+                `Savings rollover can't be saved yet because the database is missing '${SAVINGS_MIGRATION_FILE}'. You can continue for now and still use the app.`
+            )
+            return
+        }
+
+        setSavingsRolloverWarning('')
+    }, [showRolloverModal, currentMonthRolloverPrompt, isSavingsMigrationReady])
+
     useEffect(() => {
         if (!user?.id || !hasLoadedInitialData) return
         let isCancelled = false
@@ -98,7 +122,7 @@ export function Dashboard() {
 
             if (result.error?.includes("database hasn't been updated")) {
                 setWeeklyCarryoverWarning(
-                    "Weekly overspend carryover can't be applied yet. Run migration 'supabase/migrations/20260228_add_weekly_limit_carryovers.sql'."
+                    `Weekly overspend carryover can't be applied yet. Run migration '${WEEKLY_CARRYOVER_MIGRATION_FILE}'.`
                 )
                 return
             }
@@ -144,6 +168,7 @@ export function Dashboard() {
     const handleRolloverAcknowledge = () => {
         acknowledgeRollover()
         setRolloverSavingsError('')
+        setSavingsRolloverWarning('')
         setIsProcessingSavingsRollover(false)
         setShowRolloverModal(false)
     }
@@ -154,11 +179,23 @@ export function Dashboard() {
             return
         }
 
+        if (!monthlySavingsRolloversAvailable) {
+            handleRolloverAcknowledge()
+            return
+        }
+
         setIsProcessingSavingsRollover(true)
         const result = await skipCurrentMonthRollover()
         setIsProcessingSavingsRollover(false)
 
         if (!result.success) {
+            if (result.error?.includes("database hasn't been updated")) {
+                setSavingsRolloverWarning(
+                    `Savings rollover can't be saved yet because the database is missing '${SAVINGS_MIGRATION_FILE}'. This prompt was dismissed only on this device.`
+                )
+                handleRolloverAcknowledge()
+                return
+            }
             alert(`Failed to skip savings rollover: ${result.error}`)
             return
         }
@@ -175,6 +212,11 @@ export function Dashboard() {
         const amount = Number(rolloverSavingsAmount)
         if (!Number.isFinite(amount) || amount <= 0) {
             setRolloverSavingsError('Transfer amount must be greater than 0.')
+            return
+        }
+
+        if (!isSavingsMigrationReady) {
+            alert(`Savings rollover is unavailable until you run migration '${SAVINGS_MIGRATION_FILE}' in Supabase SQL Editor.`)
             return
         }
 
@@ -195,7 +237,7 @@ export function Dashboard() {
     const handleRolloverModalClose = () => {
         if (!isSavingsRolloverUiReady) return
 
-        if (currentMonthRolloverPrompt) {
+        if (currentMonthRolloverPrompt && monthlySavingsRolloversAvailable) {
             void handleSkipSavingsRollover()
             return
         }
@@ -404,35 +446,51 @@ export function Dashboard() {
                                 </p>
                             </div>
 
-                            <Input
-                                label="Transfer to Savings"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                value={rolloverSavingsAmount}
-                                onChange={(e) => {
-                                    setRolloverSavingsAmount(e.target.value)
-                                    if (rolloverSavingsError) setRolloverSavingsError('')
-                                }}
-                                error={rolloverSavingsError}
-                                required
-                            />
+                            {savingsRolloverWarning && (
+                                <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        {savingsRolloverWarning}
+                                    </p>
+                                </div>
+                            )}
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                    variant="secondary"
-                                    onClick={handleSkipSavingsRollover}
-                                    disabled={isProcessingSavingsRollover}
-                                >
-                                    Skip
+                            {isSavingsMigrationReady ? (
+                                <>
+                                    <Input
+                                        label="Transfer to Savings"
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        value={rolloverSavingsAmount}
+                                        onChange={(e) => {
+                                            setRolloverSavingsAmount(e.target.value)
+                                            if (rolloverSavingsError) setRolloverSavingsError('')
+                                        }}
+                                        error={rolloverSavingsError}
+                                        required
+                                    />
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Button
+                                            variant="secondary"
+                                            onClick={handleSkipSavingsRollover}
+                                            disabled={isProcessingSavingsRollover}
+                                        >
+                                            Skip
+                                        </Button>
+                                        <Button
+                                            onClick={handleTransferSavingsRollover}
+                                            loading={isProcessingSavingsRollover}
+                                        >
+                                            Transfer
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <Button onClick={handleRolloverAcknowledge} className="w-full">
+                                    Continue for now
                                 </Button>
-                                <Button
-                                    onClick={handleTransferSavingsRollover}
-                                    loading={isProcessingSavingsRollover}
-                                >
-                                    Transfer
-                                </Button>
-                            </div>
+                            )}
                         </div>
                     ) : (
                         <Button onClick={handleRolloverAcknowledge} className="w-full">

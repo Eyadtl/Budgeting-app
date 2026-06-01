@@ -26,6 +26,8 @@ export function useSavings() {
         monthlySavingsRollovers,
         savingsTransactionsLoaded,
         monthlySavingsRolloversLoaded,
+        savingsTransactionsAvailable,
+        monthlySavingsRolloversAvailable,
         incomeSources,
         expenses,
         isLoading,
@@ -226,6 +228,8 @@ export function useSavings() {
         error,
         savingsTransactionsLoaded,
         monthlySavingsRolloversLoaded,
+        savingsTransactionsAvailable,
+        monthlySavingsRolloversAvailable,
         isRolloverPromptReady: monthlySavingsRolloversLoaded,
         currentMonthRolloverPrompt,
         deposit,
@@ -237,4 +241,3 @@ export function useSavings() {
         refresh
     }
 }
-

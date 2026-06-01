@@ -114,6 +114,9 @@ export const useBudgetStore = create((set, get) => ({
     savingsTransactionsLoaded: false,
     monthlySavingsRolloversLoaded: false,
     weeklyLimitCarryoversLoaded: false,
+    savingsTransactionsAvailable: true,
+    monthlySavingsRolloversAvailable: true,
+    weeklyLimitCarryoversAvailable: true,
     isLoading: false,
     error: null,
 
@@ -574,6 +577,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 savingsTransactions: data || [],
                 savingsTransactionsLoaded: true,
+                savingsTransactionsAvailable: true,
                 isLoading: false
             })
         } catch (error) {
@@ -581,6 +585,7 @@ export const useBudgetStore = create((set, get) => ({
                 set({
                     savingsTransactions: [],
                     savingsTransactionsLoaded: true,
+                    savingsTransactionsAvailable: false,
                     isLoading: false
                 })
                 return
@@ -589,6 +594,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 error: error.message,
                 savingsTransactionsLoaded: true,
+                savingsTransactionsAvailable: true,
                 isLoading: false
             })
         }
@@ -611,6 +617,7 @@ export const useBudgetStore = create((set, get) => ({
             return { success: true, data }
         } catch (error) {
             if (isMissingTableError(error, 'savings_transactions')) {
+                set({ savingsTransactionsAvailable: false })
                 return {
                     success: false,
                     error: "Savings is not available because the database hasn't been updated yet."
@@ -638,6 +645,7 @@ export const useBudgetStore = create((set, get) => ({
             return { success: true }
         } catch (error) {
             if (isMissingTableError(error, 'savings_transactions')) {
+                set({ savingsTransactionsAvailable: false })
                 return {
                     success: false,
                     error: "Savings is not available because the database hasn't been updated yet."
@@ -663,6 +671,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 monthlySavingsRollovers: data || [],
                 monthlySavingsRolloversLoaded: true,
+                monthlySavingsRolloversAvailable: true,
                 isLoading: false
             })
         } catch (error) {
@@ -670,6 +679,7 @@ export const useBudgetStore = create((set, get) => ({
                 set({
                     monthlySavingsRollovers: [],
                     monthlySavingsRolloversLoaded: true,
+                    monthlySavingsRolloversAvailable: false,
                     isLoading: false
                 })
                 return
@@ -678,6 +688,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 error: error.message,
                 monthlySavingsRolloversLoaded: true,
+                monthlySavingsRolloversAvailable: true,
                 isLoading: false
             })
         }
@@ -706,6 +717,7 @@ export const useBudgetStore = create((set, get) => ({
             return { success: true, data }
         } catch (error) {
             if (isMissingTableError(error, 'monthly_savings_rollovers')) {
+                set({ monthlySavingsRolloversAvailable: false })
                 return {
                     success: false,
                     error: "Savings rollover tracking is not available because the database hasn't been updated yet."
@@ -731,6 +743,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 weeklyLimitCarryovers: data || [],
                 weeklyLimitCarryoversLoaded: true,
+                weeklyLimitCarryoversAvailable: true,
                 isLoading: false
             })
         } catch (error) {
@@ -738,6 +751,7 @@ export const useBudgetStore = create((set, get) => ({
                 set({
                     weeklyLimitCarryovers: [],
                     weeklyLimitCarryoversLoaded: true,
+                    weeklyLimitCarryoversAvailable: false,
                     isLoading: false
                 })
                 return
@@ -746,6 +760,7 @@ export const useBudgetStore = create((set, get) => ({
             set({
                 error: error.message,
                 weeklyLimitCarryoversLoaded: true,
+                weeklyLimitCarryoversAvailable: true,
                 isLoading: false
             })
         }
@@ -774,6 +789,7 @@ export const useBudgetStore = create((set, get) => ({
             return { success: true, data }
         } catch (error) {
             if (isMissingTableError(error, 'weekly_limit_carryovers')) {
+                set({ weeklyLimitCarryoversAvailable: false })
                 return {
                     success: false,
                     error: "Weekly carryover tracking is not available because the database hasn't been updated yet."
