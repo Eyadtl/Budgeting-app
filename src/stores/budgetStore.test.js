@@ -21,8 +21,6 @@ vi.mock('../services/supabase/supabase', () => ({
 
 describe('budgetStore', () => {
     beforeEach(() => {
-        // Reset the store before each test
-        const store = useBudgetStore.getState()
         // Manually reset state because zustand create doesn't provide a reset
         useBudgetStore.setState({
             profile: null,

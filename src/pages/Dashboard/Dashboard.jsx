@@ -235,8 +235,6 @@ export function Dashboard() {
     }
 
     const handleRolloverModalClose = () => {
-        if (!isSavingsRolloverUiReady) return
-
         if (currentMonthRolloverPrompt && monthlySavingsRolloversAvailable) {
             void handleSkipSavingsRollover()
             return
@@ -419,7 +417,7 @@ export function Dashboard() {
                 isOpen={showRolloverModal}
                 onClose={handleRolloverModalClose}
                 title="New Month"
-                showCloseButton={isSavingsRolloverUiReady}
+                showCloseButton
             >
                 <div className="space-y-4">
                     <p className="text-slate-600 dark:text-slate-400">
@@ -430,11 +428,19 @@ export function Dashboard() {
                     </p>
 
                     {!isSavingsRolloverUiReady ? (
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
-                            <p className="text-sm text-slate-600 dark:text-slate-300">
-                                Checking last month for leftover cash to transfer to savings...
-                            </p>
-                        </div>
+                        <>
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
+                                <p className="text-sm text-slate-600 dark:text-slate-300">
+                                    Checking last month for leftover cash to transfer to savings...
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                    You can continue now and review savings later.
+                                </p>
+                            </div>
+                            <Button onClick={handleRolloverAcknowledge} className="w-full">
+                                Continue
+                            </Button>
+                        </>
                     ) : currentMonthRolloverPrompt ? (
                         <div className="space-y-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-900/10 p-4">
                             <div>
